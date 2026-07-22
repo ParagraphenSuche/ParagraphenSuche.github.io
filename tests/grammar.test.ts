@@ -358,3 +358,34 @@ describe('heading detection', () => {
     expect(citations[0]!.lawCode).toBe('BGB')
   })
 })
+
+describe('literature references with work titles', () => {
+  it('Larenz/Canaris BT 2, § 66 IV 3, S. 116 is a Verweis', () => {
+    const { citations } = extractFromPages(['152 Canaris ZIP 1993, 406 ff.; Larenz/Canaris BT 2, § 66 IV 3, S. 116 ff.'], {
+      checkCode,
+      implicitCode: 'BGB',
+    })
+    expect(citations).toHaveLength(1)
+    expect(citations[0]!.verweis).toBe(true)
+    expect(citations[0]!.lawCode).toBeUndefined()
+  })
+  it('page-ref suffix alone marks Verweis', () => {
+    const { citations } = extractFromPages(['Esser/Weyers BT 1, § 24 II 1, S. 201.'], {
+      checkCode,
+      implicitCode: 'BGB',
+    })
+    expect(citations[0]!.verweis).toBe(true)
+  })
+  it('S.-detail still works with 2-digit values', () =>
+    expect(run('§ 81 Abs. 1 S. 12 BGB')).toEqual(['§ 81 Abs. 1 S. 12 BGB']))
+})
+
+describe('edition-marker literature context', () => {
+  it('Aufl. before citation marks Verweis', () => {
+    const { citations } = extractFromPages(
+      ['K. Schmidt Handelsrecht, 5. Aufl. 1999, § 26 II 1, S. 715.'],
+      { checkCode, implicitCode: 'BGB' },
+    )
+    expect(citations[0]!.verweis).toBe(true)
+  })
+})

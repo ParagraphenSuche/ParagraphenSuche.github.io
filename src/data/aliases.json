@@ -94,7 +94,10 @@
     "außenwirtschaftsgesetz": "awg_2013",
     "bundesfernstraßengesetz": "fstrg",
     "rechtsdienstleistungsgesetz": "rdg",
-    "depotg": "wpapg"
+    "depotg": "wpapg",
+    "wistg": "wistrg_1954",
+    "wistrg": "wistrg_1954",
+    "mabv": "gewo_34cdv"
   },
   "reject": [
     "NJW",

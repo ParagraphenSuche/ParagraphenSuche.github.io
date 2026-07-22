@@ -47,7 +47,15 @@ const HEADING_AFTER_RE = /^\s[A-ZÄÖÜ][a-zäöüß]{2,}/
  * their own law code ("Grüneberg, § 281 BGB, Rn. 20").
  */
 const AUTHOR_PREFIX_RE =
-  /(?:[A-ZÄÖÜ][a-zäöüß]+(?:\/[A-ZÄÖÜ][a-zäöüß]+)+,\s*(?:[A-Za-zÄÖÜäöüß.\- ]{1,28},\s*)?|[A-ZÄÖÜ][a-zäöüß]+,\s*[A-Za-zÄÖÜäöüß.\- ]{1,28},\s*)(?:vor\s|Einf\.\s*v\.\s*)?$/
+  /(?:[A-ZÄÖÜ][a-zäöüß]+(?:\/[A-ZÄÖÜ][a-zäöüß]+)+,?\s+(?:[A-Z0-9][A-Za-z0-9.\-]*\s?){0,4},?\s*|[A-ZÄÖÜ][a-zäöüß]+,\s*[A-Za-zÄÖÜäöüß.\- ]{1,28},\s*)(?:vor\s|Einf\.\s*v\.\s*)?$/
+
+// A trailing PAGE reference (", S. 116") marks literature — statutes have
+// no Seiten. Only meaningful for code-less citations.
+const PAGEREF_AFTER_RE = /^\s?,\s?S\.\s?\d/
+
+// Edition markers right before a citation ("K. Schmidt Handelsrecht,
+// 5. Aufl. 1999, § 26 II 1") are literature context.
+const AUFL_BEFORE_RE = /\d{1,2}\.\s?Aufl\.?\s?\d{0,4},?\s*$/
 
 export function extractFromPages(pages: string[], opts: ExtractOptions): ExtractResult {
   const citations: Citation[] = []
@@ -87,6 +95,8 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
       // immediately followed by a capitalized prose word numbers a chapter.
       const headingContext =
         chain.citations.length === 1 && HEADING_AFTER_RE.test(after)
+      const pageRefContext = PAGEREF_AFTER_RE.test(after)
+      const auflContext = AUFL_BEFORE_RE.test(before)
 
       for (const rc of chain.citations) {
         // Junk guard: § numbers beyond any German code.
@@ -161,7 +171,11 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
           !rc.ref.ff
         const verweis =
           !lawCode &&
-          (modifiers.includes('Rn-context') || authorContext || (headingContext && bare))
+          (modifiers.includes('Rn-context') ||
+            authorContext ||
+            pageRefContext ||
+            auflContext ||
+            (headingContext && bare))
 
         if (!verweis && !lawCode && opts.implicitCode) {
           lawCode = opts.implicitCode

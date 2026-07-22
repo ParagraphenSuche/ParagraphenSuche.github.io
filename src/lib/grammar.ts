@@ -57,12 +57,12 @@ const KW_VAR = String.raw`Var(?:ianten?|\.)?`
 // Continuation values are capped at 2 digits: detail values (Abs./S./Nr.)
 // are practically never >= 100, while a 3-digit continuation is almost
 // always the next § of an enumeration ("Nr. 1, 439 BGB" / "S. 1, 670 BGB").
-const numlist = (blocked: string[]): string =>
-  String.raw`\d{1,3}[a-z]?(?:\s*(?:,|und|oder|bis|bzw\.?|[–—-])\s*\d{1,2}[a-z]?(?![a-z\d])(?!\s*(?:${[...blocked, ROMAN_GUARD].join('|')})))*`
+const numlist = (blocked: string[], firstMax = 2): string =>
+  String.raw`\d{1,${firstMax}}[a-z]?(?:\s*(?:,|und|oder|bis|bzw\.?|[–—-])\s*\d{1,2}[a-z]?(?![a-z\d])(?!\s*(?:${[...blocked, ROMAN_GUARD].join('|')})))*`
 const NL_ABS = numlist([KW_ABS])
 const NL_S = numlist([KW_ABS, KW_S])
 const NL_HS = numlist([KW_ABS, KW_S, KW_HS])
-const NL_NR = numlist([KW_ABS, KW_S, KW_HS, KW_NR])
+const NL_NR = numlist([KW_ABS, KW_S, KW_HS, KW_NR], 3)
 const NL_ALT = numlist([KW_ABS, KW_S, KW_HS, KW_NR, KW_ALT, KW_VAR])
 const LETLIST = String.raw`[a-z]{1,2}\)?(?:\s*(?:,|und|oder|bis)\s*[a-z]{1,2}\)?)*`
 const DETAIL = String.raw`(?:\d{1,2}\.\s?(?:Alt(?:ernative)?|Var(?:iante)?|Halbs(?:atz)?|Hs)\.?|U(?:nter)?[Aa]bs(?:atz|\.)?\s*${NL_S}|Abs(?:ätze|atz|\.)?\s*${NL_ABS}|S\.?(?=\s?\d)\s?${NL_S}|S(?:ätze|atz)\s*${NL_S}|Halbs(?:atz|\.)?\s*${NL_HS}|HS\.?(?=\s?\d)\s?${NL_HS}|Hs\.?\s*${NL_HS}|Nrn?\.?\s*${NL_NR}|Nummern?\s*${NL_NR}|Alt(?:ernativen?|\.)?\s*${NL_ALT}|Var(?:ianten?|\.)?\s*${NL_ALT}|Doppelbuchst(?:abe|\.)?\s*[a-z]{2}|Buchst(?:aben?|\.)?\s*${LETLIST}|lit\.?\s*${LETLIST})`

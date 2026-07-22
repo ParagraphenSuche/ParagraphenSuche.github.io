@@ -30,8 +30,13 @@ export class LawRegistry {
   constructor(slugs: string[]) {
     this.slugs = slugs
     for (const slug of slugs) {
+      // gii slugs replace umlauts with "_" (BörsG -> b_rsg_2007) and append
+      // year suffixes. Index the raw base too, so an umlaut-transliterated
+      // candidate key can hit it.
+      const base = slug.replace(/_\d{1,4}$/, '')
       this.bySlugKey.set(normalizeCodeKey(slug.replace(/_/g, '')), slug)
-      this.bySlugKey.set(normalizeCodeKey(slug.split('_')[0]!), slug)
+      this.bySlugKey.set(normalizeCodeKey(base.replace(/_/g, '')), slug)
+      if (base.includes('_')) this.bySlugKey.set(base, slug)
     }
     // Explicit aliases override automatic slug matching.
     for (const [key, slug] of Object.entries(aliasData.slugAliases as Record<string, string | null>)) {
@@ -63,12 +68,27 @@ export class LawRegistry {
     const direct = this.bySlugKey.get(key)
     if (direct) return { display: code, slug: direct }
 
+    // Umlaut transliteration: gii writes BörsG as b_rsg_2007, AÜG as a_g.
+    const umlautKey = code.toLowerCase().replace(/[\s.\-–]/g, '').replace(/[äöü]/g, '_')
+    if (umlautKey !== key) {
+      const viaUmlaut = this.bySlugKey.get(umlautKey)
+      if (viaUmlaut) return { display: code, slug: viaUmlaut }
+    }
+
     // Year-suffixed slugs: "bdsg" -> newest of bdsg_2018, bdsg_1990 …
-    const prefixed = this.slugs
-      .filter((s) => s.startsWith(`${key}_`))
-      .sort()
-      .reverse()
-    if (prefixed.length > 0) return { display: code, slug: prefixed[0]! }
+    for (const probe of umlautKey !== key ? [key, umlautKey] : [key]) {
+      const prefixed = this.slugs
+        .filter((s) => s.startsWith(`${probe}_`))
+        .sort()
+        .reverse()
+      if (prefixed.length > 0) return { display: code, slug: prefixed[0]! }
+    }
+
+    // Unknown -VO/-RL suffix: treat as an (unchecked) EU instrument —
+    // "Offenlegungs-VO", "Warenkauf-RL", "BilanzRL" …
+    if (/(?:vo|rl)$/.test(key) && key.length > 3) {
+      return { display: code, eu: true }
+    }
 
     return null
   }

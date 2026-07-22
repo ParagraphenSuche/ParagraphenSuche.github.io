@@ -290,3 +290,71 @@ describe('sign-less iVm legs', () => {
   it('iVm followed by prose still ends the chain', () =>
     expect(run('§ 812 BGB i.V.m. dem Vertrag')).toEqual(['§ 812 BGB']))
 })
+
+describe('Verweis detection (chapter vs implicit law)', () => {
+  it('code-less Rn citation is a Verweis, implicit does not attach', () => {
+    const { citations } = extractFromPages(['Brox/Walker, SchuldR AT, § 22, Rn. 58.'], {
+      checkCode,
+      implicitCode: 'BGB',
+    })
+    expect(citations).toHaveLength(1)
+    expect(citations[0]!.verweis).toBe(true)
+    expect(citations[0]!.lawCode).toBeUndefined()
+  })
+  it('author prefix without Rn is a Verweis', () => {
+    const { citations } = extractFromPages(['vgl. Medicus/Petersen, BR, § 31 im Detail'], {
+      checkCode,
+      implicitCode: 'BGB',
+    })
+    expect(citations[0]!.verweis).toBe(true)
+  })
+  it('commentary citation with code stays a norm citation', () => {
+    const { citations } = extractFromPages(['Grüneberg/Grüneberg, § 281 BGB, Rn. 20 ff.'], {
+      checkCode,
+      implicitCode: 'BGB',
+    })
+    expect(citations[0]!.verweis).toBeUndefined()
+    expect(citations[0]!.lawCode).toBe('BGB')
+  })
+  it('plain implicit citation still gets the code', () => {
+    const { citations } = extractFromPages(['Der Käufer ist nach § 433 Abs. 2 verpflichtet.'], {
+      checkCode,
+      implicitCode: 'BGB',
+    })
+    expect(citations[0]!.verweis).toBeUndefined()
+    expect(citations[0]!.lawCode).toBe('BGB')
+    expect(citations[0]!.implicit).toBe(true)
+  })
+})
+
+describe('batch-run findings', () => {
+  it('UAbs. is a detail level', () =>
+    expect(run('nach Art. 288 UAbs. 3 AEUV')).toEqual(['Art. 288 UAbs. 3 AEUV']))
+  it('dotless S and HS details', () => {
+    expect(run('\u00a7 13 Abs. 1 S 2 BGB')).toEqual(['\u00a7 13 Abs. 1 S. 2 BGB'])
+    expect(run('\u00a7 5 Abs. 1 HS 2 GG')).toEqual(['\u00a7 5 Abs. 1 Hs. 2 GG'])
+  })
+  it('split-compound after citation is not a code', () => {
+    const { citations } = extractFromPages(['gilt (\u00a7 535 BGB) Miet- und Pachtrecht'], { checkCode })
+    expect(citations).toHaveLength(1)
+    expect(citations[0]!.lawCode).toBe('BGB')
+  })
+})
+
+describe('heading detection', () => {
+  it('TOC chapter entry is a Verweis', () => {
+    const { citations } = extractFromPages(['§ 1 Das Handelsrecht im System'], {
+      checkCode,
+      implicitCode: 'HGB',
+    })
+    expect(citations[0]!.verweis).toBe(true)
+  })
+  it('citation with details before capitalized word is not a heading', () => {
+    const { citations } = extractFromPages(['nach § 433 Abs. 2 Der Käufer zahlt'], {
+      checkCode,
+      implicitCode: 'BGB',
+    })
+    expect(citations[0]!.verweis).toBeUndefined()
+    expect(citations[0]!.lawCode).toBe('BGB')
+  })
+})

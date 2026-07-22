@@ -65,7 +65,7 @@ const NL_HS = numlist([KW_ABS, KW_S, KW_HS])
 const NL_NR = numlist([KW_ABS, KW_S, KW_HS, KW_NR])
 const NL_ALT = numlist([KW_ABS, KW_S, KW_HS, KW_NR, KW_ALT, KW_VAR])
 const LETLIST = String.raw`[a-z]{1,2}\)?(?:\s*(?:,|und|oder|bis)\s*[a-z]{1,2}\)?)*`
-const DETAIL = String.raw`(?:\d{1,2}\.\s?(?:Alt(?:ernative)?|Var(?:iante)?|Halbs(?:atz)?|Hs)\.?|Abs(?:ätze|atz|\.)?\s*${NL_ABS}|S\.\s*${NL_S}|S(?:ätze|atz)\s*${NL_S}|Halbs(?:atz|\.)?\s*${NL_HS}|Hs\.?\s*${NL_HS}|Nrn?\.?\s*${NL_NR}|Nummern?\s*${NL_NR}|Alt(?:ernativen?|\.)?\s*${NL_ALT}|Var(?:ianten?|\.)?\s*${NL_ALT}|Doppelbuchst(?:abe|\.)?\s*[a-z]{2}|Buchst(?:aben?|\.)?\s*${LETLIST}|lit\.?\s*${LETLIST})`
+const DETAIL = String.raw`(?:\d{1,2}\.\s?(?:Alt(?:ernative)?|Var(?:iante)?|Halbs(?:atz)?|Hs)\.?|U(?:nter)?[Aa]bs(?:atz|\.)?\s*${NL_S}|Abs(?:ätze|atz|\.)?\s*${NL_ABS}|S\.?(?=\s?\d)\s?${NL_S}|S(?:ätze|atz)\s*${NL_S}|Halbs(?:atz|\.)?\s*${NL_HS}|HS\.?(?=\s?\d)\s?${NL_HS}|Hs\.?\s*${NL_HS}|Nrn?\.?\s*${NL_NR}|Nummern?\s*${NL_NR}|Alt(?:ernativen?|\.)?\s*${NL_ALT}|Var(?:ianten?|\.)?\s*${NL_ALT}|Doppelbuchst(?:abe|\.)?\s*[a-z]{2}|Buchst(?:aben?|\.)?\s*${LETLIST}|lit\.?\s*${LETLIST})`
 
 // Roman-numeral shorthand: "823 I 1" = Abs. 1 S. 1. The Roman numeral must
 // not be followed by a letter ("§ 1 VVG" must leave VVG to the code).
@@ -97,7 +97,7 @@ const CODE_EU = String.raw`(?:VO|Verordnung|RL|Richtlinie)\s?\((?:EU|EG|EWG)\)\s
 // a generic Roman option would glue following outline headings on ("… BGB
 // V. Abschnitt"). A digit second token only for 1-2 letter bases ("G 10"),
 // otherwise stray page numbers attach ("… § 122 BGB 28 Lerneinheit …").
-const CODE_TOKEN = String.raw`(?:SGB\s(?:${ROMAN})(?![A-Za-zÄÖÜäöüß.])|R[Oo][Mm]\sI{1,3}(?![A-Za-zÄÖÜäöüß.])|[A-ZÄÖÜ]{1,2}\s\d{1,2}(?![.\d])|[A-ZÄÖÜ][A-Za-zÄÖÜäöüß0-9.\/-]{0,29})`
+const CODE_TOKEN = String.raw`(?:SGB\s(?:${ROMAN})(?![A-Za-zÄÖÜäöüß.])|R[Oo][Mm]\sI{1,3}(?![A-Za-zÄÖÜäöüß.])|G\s\d{1,2}(?![.\d])|[A-ZÄÖÜ][A-Za-zÄÖÜäöüß0-9.\/-]{0,29})`
 const CODE = String.raw`(?:${CODE_EU}|${CODE_TOKEN})`
 
 // One citation leg: sign + refs + optional inner § (EGBGB: "Art. 246a § 1
@@ -161,9 +161,13 @@ function parseDetailToken(token: string): Detail {
       .trim()
   const tail = (re: RegExp): string => norm(t.replace(re, ''))
 
+  if (/^U(?:nter)?[Aa]bs/.test(t))
+    return { level: 'UAbs.', value: tail(/^U(?:nter)?[Aa]bs(?:atz|\.)?\s*/) }
   if (/^Abs/.test(t)) return { level: 'Abs.', value: tail(/^Abs(?:ätze|atz|\.)?\s*/) }
-  if (/^S/.test(t)) return { level: 'S.', value: tail(/^S(?:ätze|atz|\.)?\s*/) }
-  if (/^(?:Halbs|Hs)/.test(t)) return { level: 'Hs.', value: tail(/^(?:Halbs(?:atz|\.)?|Hs\.?)\s*/) }
+  if (/^S(?:\.|\s?\d|ätze|atz)/.test(t))
+    return { level: 'S.', value: tail(/^S(?:ätze|atz|\.)?\s*/) }
+  if (/^(?:Halbs|HS|Hs)/.test(t))
+    return { level: 'Hs.', value: tail(/^(?:Halbs(?:atz|\.)?|HS\.?|Hs\.?)\s*/) }
   if (/^N(?:r|ummer)/.test(t)) return { level: 'Nr.', value: tail(/^(?:Nrn?\.?|Nummern?)\s*/) }
   if (/^Alt/.test(t)) return { level: 'Alt.', value: tail(/^Alt(?:ernativen?|\.)?\s*/) }
   if (/^Var/.test(t)) return { level: 'Var.', value: tail(/^Var(?:ianten?|\.)?\s*/) }
@@ -365,8 +369,9 @@ function parseLeg(leg: string, offset: number, inheritKind?: Kind): RawCitation[
   let codeCandidate: string | undefined
   const cm = eat(CODE_RE, leg, pos)
   if (cm) {
-    // Trailing sentence punctuation is not part of the code ("… BGB. Auch …").
-    codeCandidate = cm[1]!.replace(/\s+/g, ' ').trim().replace(/[.,;:]+$/, '')
+    // Trailing sentence punctuation, split-compound hyphens ("Miet- und
+    // Pachtrecht") and stray slashes are not part of the code.
+    codeCandidate = cm[1]!.replace(/\s+/g, ' ').trim().replace(/[.,;:/–-]+$/, '')
     pos = cm.index + cm[0].length
   }
   eatMods()

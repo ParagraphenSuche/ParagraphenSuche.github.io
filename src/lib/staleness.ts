@@ -110,6 +110,13 @@ export async function applyStaleness(
   let rateLimited = false
 
   for (const row of rows) {
+    if (row.law === '[Verweis]') {
+      row.staleness = {
+        status: 'UNKNOWN',
+        note: 'Verweis auf Literatur oder Kapitel – keine Norm.',
+      }
+      continue
+    }
     const resolved = registry.resolve(row.law)
 
     if (!resolved) {

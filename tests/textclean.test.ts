@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanText, dropDuplicatedLayer, stripRepeatedEdges } from '../src/lib/textclean'
+import { cleanText, dropDuplicatedLayer, fixShiftedEncoding, stripRepeatedEdges } from '../src/lib/textclean'
 
 describe('stripRepeatedEdges', () => {
   it('removes repeated footers and headers', () => {
@@ -51,5 +51,19 @@ describe('dropDuplicatedLayer', () => {
   it('keeps normal pages', () => {
     const body = 'Ganz normaler Seitentext ohne jede Wiederholung, der lang genug ist um die Probe zu füllen und dann endet.'
     expect(dropDuplicatedLayer(body)).toBe(body)
+  })
+})
+
+describe('fixShiftedEncoding', () => {
+  it('recovers shifted glyph text', () => {
+    // "Computerstrafrecht des \u00a7 263a StGB ist" in shifted glyph codes
+    const shifted = '&RPSXWHUVWUDIUHFKW\u0003GHV\u0003\u0086\u0003\u0015\u0019\u0016D\u00036W*%\u0003LVW\u0003'
+    const fixed = fixShiftedEncoding(shifted.repeat(3))
+    expect(fixed).toContain('Computerstrafrecht')
+    expect(fixed).toContain('\u00a7 263a StGB')
+  })
+  it('leaves normal text alone', () => {
+    const normal = 'Ganz normaler Text mit \u00a7 823 BGB und weiteren Ausf\u00fchrungen, der lang genug ist.'
+    expect(fixShiftedEncoding(normal)).toBe(normal)
   })
 })

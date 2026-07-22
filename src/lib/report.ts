@@ -37,12 +37,12 @@ export function groupCitations(citations: Citation[]): TableRow[] {
   const rows = new Map<string, TableRow & { _explicitSeen: boolean }>()
 
   for (const c of citations) {
-    const law = c.lawCode ?? '[?]'
+    const law = c.verweis ? '[Verweis]' : (c.lawCode ?? '[?]')
     // Key by the NORMALIZED code so casing/punctuation variants of one law
     // merge ("ProdHaftG"/"ProdhaftG"); display keeps the shortest variant.
     // ff.-citations and ranges get their own rows (they need different
     // verification and live in the self-review table when unbounded/wide).
-    const lawKey = c.lawCode ? normalizeCodeKey(c.lawCode) : '[?]'
+    const lawKey = c.verweis ? '[Verweis]' : c.lawCode ? normalizeCodeKey(c.lawCode) : '[?]'
     const key =
       `${lawKey} ${c.ref.kind} ${c.ref.number}` +
       (c.ref.numberEnd ? `-${c.ref.numberEnd}` : '') +
@@ -181,17 +181,24 @@ export function rowSpanWidth(row: TableRow): number {
 }
 
 /**
- * Splits rows into the precisely verifiable main table and the self-review
- * table (open-ended ff. citations and ranges wider than RANGE_VERIFY_LIMIT).
+ * Splits rows into the precisely verifiable main table, the self-review
+ * table (open-ended ff. citations and ranges wider than RANGE_VERIFY_LIMIT),
+ * and literature/chapter references ("Verweise").
  */
-export function splitRows(rows: TableRow[]): { main: TableRow[]; review: TableRow[] } {
+export function splitRows(rows: TableRow[]): {
+  main: TableRow[]
+  review: TableRow[]
+  verweise: TableRow[]
+} {
   const main: TableRow[] = []
   const review: TableRow[] = []
+  const verweise: TableRow[] = []
   for (const row of rows) {
-    if (row.ff === 'ff.' || rowSpanWidth(row) > RANGE_VERIFY_LIMIT) review.push(row)
+    if (row.law === '[Verweis]') verweise.push(row)
+    else if (row.ff === 'ff.' || rowSpanWidth(row) > RANGE_VERIFY_LIMIT) review.push(row)
     else main.push(row)
   }
-  return { main, review }
+  return { main, review, verweise }
 }
 
 // --- exports ---
@@ -224,7 +231,7 @@ function csvEscape(v: string): string {
 
 /** Semicolon-separated CSV (German Excel default). */
 export function toCsv(rows: TableRow[]): string {
-  const { main, review } = splitRows(rows)
+  const { main, review, verweise } = splitRows(rows)
   const header = ['Kategorie', 'Gesetz', 'Norm', 'Zitat-Varianten', 'Seiten', 'Status', 'Hinweis']
   const lines = [header.join(';')]
   const push = (r: TableRow, kategorie: string) =>
@@ -243,11 +250,12 @@ export function toCsv(rows: TableRow[]): string {
     )
   for (const r of main) push(r, 'geprüft')
   for (const r of review) push(r, 'selbst prüfen')
+  for (const r of verweise) push(r, 'Verweis')
   return '﻿' + lines.join('\r\n') // BOM so Excel detects UTF-8
 }
 
 export function toMarkdown(rows: TableRow[], title: string): string {
-  const { main, review } = splitRows(rows)
+  const { main, review, verweise } = splitRows(rows)
   const esc = (s: string) => s.replace(/\|/g, '\\|')
   const tableOf = (list: TableRow[]) => [
     '| Gesetz | Norm | Zitat-Varianten | Seiten | Status | Hinweis |',
@@ -263,13 +271,16 @@ export function toMarkdown(rows: TableRow[], title: string): string {
   if (review.length > 0) {
     lines.push('', '## Bereichszitate & „ff.“ – bitte selbst prüfen', '', ...tableOf(review))
   }
+  if (verweise.length > 0) {
+    lines.push('', '## Literatur- & Kapitelverweise', '', ...tableOf(verweise))
+  }
   return lines.join('\n') + '\n'
 }
 
 export function toHtml(rows: TableRow[], title: string): string {
   const esc = (s: string) =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const { main, review } = splitRows(rows)
+  const { main, review, verweise } = splitRows(rows)
   const tableOf = (list: TableRow[]) => `<table><thead><tr><th>Gesetz</th><th>Norm</th><th>Zitat-Varianten</th><th>Seiten</th><th>Status</th><th>Hinweis</th></tr></thead>
 <tbody>
 ${list
@@ -289,6 +300,8 @@ ${list
     review.length > 0
       ? `<h2>Bereichszitate &amp; „ff.“ – bitte selbst prüfen</h2>\n${tableOf(review)}`
       : ''
+  const verweisSection =
+    verweise.length > 0 ? `<h2>Literatur- &amp; Kapitelverweise</h2>\n${tableOf(verweise)}` : ''
   return `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><title>ParagraphenSuche – ${esc(title)}</title>
 <style>body{font-family:sans-serif;max-width:70rem;margin:2rem auto;padding:0 1rem}
@@ -297,6 +310,7 @@ th{background:#e8f0f8}</style></head><body>
 <h1>ParagraphenSuche – ${esc(title)}</h1>
 ${tableOf(main)}
 ${reviewSection}
+${verweisSection}
 </body></html>
 `
 }

@@ -4,7 +4,7 @@ export type Kind = '§' | 'Art.'
 /** One element of the subdivision chain, in citation order. */
 export interface Detail {
   /** '§' covers the EGBGB pattern "Art. 246a § 1 Abs. 2 S. 2 EGBGB". */
-  level: '§' | 'Abs.' | 'S.' | 'Hs.' | 'Nr.' | 'lit.' | 'Alt.' | 'Var.' | 'Doppelbuchst.'
+  level: '§' | 'Abs.' | 'UAbs.' | 'S.' | 'Hs.' | 'Nr.' | 'lit.' | 'Alt.' | 'Var.' | 'Doppelbuchst.'
   /** Normalized value, e.g. "1", "1 und 2", "3-5", "f". */
   value: string
 }
@@ -36,6 +36,12 @@ export interface Citation {
   modifiers: Modifier[]
   /** Citations joined by "iVm" share a chain id (display only). */
   chainId?: number
+  /**
+   * Literature/chapter reference ("Brox/Walker, SchuldR AT, § 22, Rn. 58"):
+   * code-less with Rn-context or author prefix. The § numbers a chapter of
+   * the cited WORK, not a statute — the implicit code must not attach.
+   */
+  verweis?: boolean
 }
 
 export type StaleStatus =

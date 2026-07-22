@@ -64,7 +64,7 @@ export function renderResults(
     warningsContainer.append(el('strong', 'Hinweise:'), ul)
   }
 
-  const { main, review } = splitRows(allRows)
+  const { main, review, verweise } = splitRows(allRows)
   renderTable(container, main, `Gefundene Normen (${main.length})`, onPageClick)
   if (review.length > 0) {
     renderTable(
@@ -73,6 +73,15 @@ export function renderResults(
       `Bereichszitate & „ff.“ (${review.length}) – bitte selbst prüfen`,
       onPageClick,
       'Diese Zitate umfassen viele bzw. unbestimmt viele Normen und werden nicht einzeln geprüft.',
+    )
+  }
+  if (verweise.length > 0) {
+    renderTable(
+      container,
+      verweise,
+      `Literatur- & Kapitelverweise (${verweise.length})`,
+      onPageClick,
+      'Diese §-Angaben beziehen sich auf Kapitel zitierter Werke (z. B. „Brox/Walker, BGB AT, § 38, Rn. 1“), nicht auf Gesetze.',
     )
   }
 

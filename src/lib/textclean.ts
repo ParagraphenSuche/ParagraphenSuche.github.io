@@ -1,4 +1,42 @@
 /**
+ * Some older PDFs (embedded font subsets without ToUnicode tables) extract
+ * as glyph codes: ASCII shifted down by 0x1D (space = , "Grundlagen"
+ * = "*UXQGODJHQ") with German specials at fixed subset slots. Detected via
+ * the control-character ratio and only kept when the result looks like text.
+ */
+const SHIFT_SPECIALS: Record<number, string> = {
+  0x62: 'ä', // italic subset
+  0x67: 'Ö', 0x68: 'Ü',
+  0x6c: 'ä', 0x7c: 'ö', 0x81: 'ü', 0x89: 'ß',
+  0x86: '§', 0xab: '–', 0xb1: '–', 0x2212: '-',
+  0xc4: '„', 0xb3: '“',
+}
+
+export function fixShiftedEncoding(raw: string): string {
+  let ctrl = 0
+  let total = 0
+  for (const ch of raw) {
+    const c = ch.codePointAt(0)!
+    if (ch !== '\n' && ch !== '\r' && ch !== '\t') {
+      total++
+      if (c >= 3 && c <= 0x1f) ctrl++
+    }
+  }
+  if (total < 50 || ctrl / total < 0.1) return raw
+
+  let out = ''
+  for (const ch of raw) {
+    const c = ch.codePointAt(0)!
+    if (ch === '\n' || ch === '\r' || ch === '\t') out += ch
+    else if (c >= 3 && c <= 0x61) out += String.fromCodePoint(c + 0x1d)
+    else out += SHIFT_SPECIALS[c] ?? ch
+  }
+  // Keep only when the recovery actually produced readable text.
+  const letters = out.match(/[A-Za-zÄÖÜäöüß0-9 .,§()]/g)?.length ?? 0
+  return letters / total > 0.85 ? out : raw
+}
+
+/**
  * Some PDFs carry the page text twice (a duplicated tagged-content /
  * accessibility layer) — every citation would count double. When the page's
  * opening text reappears later, everything from the reappearance on is the

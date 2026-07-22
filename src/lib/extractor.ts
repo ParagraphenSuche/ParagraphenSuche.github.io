@@ -4,7 +4,7 @@
  * staleness feature; tests and the offline path use a static set).
  */
 import type { AnalysisWarning, Citation, Modifier } from './models'
-import { cleanText, dropDuplicatedLayer, stripRepeatedEdges } from './textclean'
+import { cleanText, dropDuplicatedLayer, fixShiftedEncoding, stripRepeatedEdges } from './textclean'
 import { findCitations } from './grammar'
 import aliasData from '../data/aliases.json'
 
@@ -38,6 +38,16 @@ export function isRejectedCode(code: string): boolean {
 const MAX_SECTION = 2500
 
 const RN_AFTER_RE = /^\s*(?:Rn|Rdnr|Rz|Rnr)\.?\s*\d/
+const HEADING_AFTER_RE = /^\s[A-ZÄÖÜ][a-zäöüß]{2,}/
+
+/**
+ * Author context directly before a citation marks a literature reference:
+ * "Brox/Walker, " (slash-joined names) or "Stadler, BGB AT, " (name plus a
+ * short work segment). Commentary citations are unaffected — they carry
+ * their own law code ("Grüneberg, § 281 BGB, Rn. 20").
+ */
+const AUTHOR_PREFIX_RE =
+  /(?:[A-ZÄÖÜ][a-zäöüß]+(?:\/[A-ZÄÖÜ][a-zäöüß]+)+,\s*(?:[A-Za-zÄÖÜäöüß.\- ]{1,28},\s*)?|[A-ZÄÖÜ][a-zäöüß]+,\s*[A-Za-zÄÖÜäöüß.\- ]{1,28},\s*)(?:vor\s|Einf\.\s*v\.\s*)?$/
 
 export function extractFromPages(pages: string[], opts: ExtractOptions): ExtractResult {
   const citations: Citation[] = []
@@ -47,7 +57,9 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
   // Strip repeated headers/footers, then join all pages into one text so
   // citations straddling a page break ("… nach § 123 <break> BGB …") still
   // match; page attribution via the citation's start offset.
-  const cleaned = stripRepeatedEdges(pages.map(dropDuplicatedLayer)).map(cleanText)
+  const cleaned = stripRepeatedEdges(pages.map(fixShiftedEncoding).map(dropDuplicatedLayer)).map(
+    cleanText,
+  )
   const pageStarts: number[] = []
   let text = ''
   for (const p of cleaned) {
@@ -69,6 +81,12 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
     for (const chain of findCitations(text)) {
       const after = text.slice(chain.index + chain.raw.length)
       const rnContext = RN_AFTER_RE.test(after)
+      const before = text.slice(Math.max(0, chain.index - 60), chain.index)
+      const authorContext = AUTHOR_PREFIX_RE.test(before)
+      // TOC/heading entries ("§ 1 Das Handelsrecht"): a bare single-§ chain
+      // immediately followed by a capitalized prose word numbers a chapter.
+      const headingContext =
+        chain.citations.length === 1 && HEADING_AFTER_RE.test(after)
 
       for (const rc of chain.citations) {
         // Junk guard: § numbers beyond any German code.
@@ -81,7 +99,7 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
         let candidate = rc.codeCandidate
 
         // "§ 242 Rn. 5" — grammar may capture "Rn" as code candidate.
-        if (candidate && /^(?:Rn|Rdnr|Rz|Rnr)\.?$/i.test(candidate.split(' ')[0]!)) {
+        if (candidate && /^(?:Rn|Rdnr|Rz|Rnr)\.?\d*$/i.test(candidate.split(' ')[0]!)) {
           candidate = undefined
           if (!modifiers.includes('Rn-context')) modifiers.push('Rn-context')
         }
@@ -132,7 +150,20 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
         // trailing number is likely prose ("nach § 823, 1000 Euro …").
         if (rc.enumExtra && !lawCode) continue
 
-        if (!lawCode && opts.implicitCode) {
+        // Code-less citation in a literature context: the § numbers a
+        // chapter of the cited work, not a statute. Never give it the
+        // implicit code — the chapter/implicit degeneracy is resolved by
+        // the fact that commentary cites carry their own code.
+        const bare =
+          rc.ref.kind === '§' &&
+          rc.ref.details.length === 0 &&
+          !rc.ref.numberEnd &&
+          !rc.ref.ff
+        const verweis =
+          !lawCode &&
+          (modifiers.includes('Rn-context') || authorContext || (headingContext && bare))
+
+        if (!verweis && !lawCode && opts.implicitCode) {
           lawCode = opts.implicitCode
           implicit = true
         }
@@ -147,6 +178,7 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
           implicit,
           modifiers,
           chainId: rc.chainId,
+          verweis: verweis || undefined,
         })
       }
     }

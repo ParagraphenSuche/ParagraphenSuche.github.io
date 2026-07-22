@@ -181,24 +181,96 @@ export function rowSpanWidth(row: TableRow): number {
 }
 
 /**
- * Splits rows into the precisely verifiable main table, the self-review
- * table (open-ended ff. citations and ranges wider than RANGE_VERIFY_LIMIT),
- * and literature/chapter references ("Verweise").
+ * Splits rows into four buckets: the precisely verifiable main table, the
+ * self-review table (ff./wide ranges), AI-classified literature references,
+ * and everything ambiguous ([?] and heuristic-Verweis rows before/without
+ * AI classification, plus AI-"unsicher" verdicts).
  */
 export function splitRows(rows: TableRow[]): {
   main: TableRow[]
   review: TableRow[]
-  verweise: TableRow[]
+  literatur: TableRow[]
+  uneindeutig: TableRow[]
 } {
   const main: TableRow[] = []
   const review: TableRow[] = []
-  const verweise: TableRow[] = []
+  const literatur: TableRow[] = []
+  const uneindeutig: TableRow[] = []
   for (const row of rows) {
-    if (row.law === '[Verweis]') verweise.push(row)
+    if (row.aiClass === 'verweis') literatur.push(row)
+    else if (row.law === '[Verweis]' || row.law === '[?]') uneindeutig.push(row)
     else if (row.ff === 'ff.' || rowSpanWidth(row) > RANGE_VERIFY_LIMIT) review.push(row)
     else main.push(row)
   }
-  return { main, review, verweise }
+  return { main, review, literatur, uneindeutig }
+}
+
+/**
+ * Applies AI verdicts to rows (mutating): "verweis" rows become literature,
+ * "norm" rows get their law (merging into an existing row of that law when
+ * present — AI-contributed pages are tracked separately and rendered with
+ * **), "unsicher" stays ambiguous. Returns the updated row list.
+ */
+export function applyAiResults(
+  rows: TableRow[],
+  results: Map<string, { typ: 'norm' | 'verweis' | 'unsicher'; gesetz?: string }>,
+  rowKeyOf: (row: TableRow) => string,
+  normalize: (code: string) => string,
+): TableRow[] {
+  const out: TableRow[] = []
+  const mainByKey = new Map<string, TableRow>()
+  for (const row of rows) {
+    if (!row.law.startsWith('[')) {
+      mainByKey.set(
+        `${normalize(row.law)} ${row.kind} ${row.number}` +
+          (row.numberEnd ? `-${row.numberEnd}` : '') +
+          (row.ff === 'ff.' ? ' ff.' : ''),
+        row,
+      )
+    }
+  }
+  for (const row of rows) {
+    const res = results.get(rowKeyOf(row))
+    if (!res || !row.law.startsWith('[')) {
+      out.push(row)
+      continue
+    }
+    if (res.typ === 'verweis') {
+      row.aiClass = 'verweis'
+      out.push(row)
+      continue
+    }
+    if (res.typ !== 'norm' || !res.gesetz || normalize(res.gesetz) === 'unbekannt') {
+      row.aiClass = 'unsicher'
+      out.push(row)
+      continue
+    }
+    // norm with a law: merge into an existing row of that law or convert.
+    const key =
+      `${normalize(res.gesetz)} ${row.kind} ${row.number}` +
+      (row.numberEnd ? `-${row.numberEnd}` : '') +
+      (row.ff === 'ff.' ? ' ff.' : '')
+    const existing = mainByKey.get(key)
+    if (existing) {
+      const target = (existing.aiPages ??= [])
+      for (const p of row.pages) {
+        if (!existing.pages.includes(p) && !target.includes(p)) target.push(p)
+      }
+      target.sort((a, b) => a - b)
+      for (const v of row.variants) {
+        if (!existing.variants.includes(v)) existing.variants.push(v)
+      }
+      continue // row merged away
+    }
+    row.law = res.gesetz
+    row.aiClass = 'norm'
+    row.aiPages = [...row.pages]
+    row.pages = []
+    row.staleness = undefined
+    out.push(row)
+    mainByKey.set(key, row)
+  }
+  return out
 }
 
 // --- exports ---
@@ -216,13 +288,14 @@ export function statusLabel(row: TableRow): string {
   return row.staleness ? (STATUS_LABEL[row.staleness.status] ?? row.staleness.status) : ''
 }
 
-/** "3, 7, 12*" — implied pages (via range/ff. citation) carry a * marker. */
-function pagesText(row: TableRow): string {
+/** "3, 7*, 12**" — * = implied via range/ff., ** = AI-classified. */
+export function pagesText(row: TableRow): string {
   const all = [
-    ...row.pages.map((p) => ({ p, implied: false })),
-    ...row.impliedPages.map((p) => ({ p, implied: true })),
+    ...row.pages.map((p) => ({ p, mark: '' })),
+    ...row.impliedPages.map((p) => ({ p, mark: '*' })),
+    ...(row.aiPages ?? []).map((p) => ({ p, mark: '**' })),
   ].sort((a, b) => a.p - b.p)
-  return all.map((e) => (e.implied ? `${e.p}*` : `${e.p}`)).join(', ')
+  return all.map((e) => `${e.p}${e.mark}`).join(', ')
 }
 
 function csvEscape(v: string): string {
@@ -231,7 +304,7 @@ function csvEscape(v: string): string {
 
 /** Semicolon-separated CSV (German Excel default). */
 export function toCsv(rows: TableRow[]): string {
-  const { main, review, verweise } = splitRows(rows)
+  const { main, review, literatur, uneindeutig } = splitRows(rows)
   const header = ['Kategorie', 'Gesetz', 'Norm', 'Zitat-Varianten', 'Seiten', 'Status', 'Hinweis']
   const lines = [header.join(';')]
   const push = (r: TableRow, kategorie: string) =>
@@ -250,12 +323,13 @@ export function toCsv(rows: TableRow[]): string {
     )
   for (const r of main) push(r, 'geprüft')
   for (const r of review) push(r, 'selbst prüfen')
-  for (const r of verweise) push(r, 'Verweis')
+  for (const r of literatur) push(r, 'Literaturverweis (KI)')
+  for (const r of uneindeutig) push(r, 'uneindeutig')
   return '﻿' + lines.join('\r\n') // BOM so Excel detects UTF-8
 }
 
 export function toMarkdown(rows: TableRow[], title: string): string {
-  const { main, review, verweise } = splitRows(rows)
+  const { main, review, literatur, uneindeutig } = splitRows(rows)
   const esc = (s: string) => s.replace(/\|/g, '\\|')
   const tableOf = (list: TableRow[]) => [
     '| Gesetz | Norm | Zitat-Varianten | Seiten | Status | Hinweis |',
@@ -271,8 +345,11 @@ export function toMarkdown(rows: TableRow[], title: string): string {
   if (review.length > 0) {
     lines.push('', '## Bereichszitate & „ff.“ – bitte selbst prüfen', '', ...tableOf(review))
   }
-  if (verweise.length > 0) {
-    lines.push('', '## Literatur- & Kapitelverweise', '', ...tableOf(verweise))
+  if (literatur.length > 0) {
+    lines.push('', '## Literaturverweise (KI-klassifiziert)', '', ...tableOf(literatur))
+  }
+  if (uneindeutig.length > 0) {
+    lines.push('', '## Uneindeutige Klassifizierungen', '', ...tableOf(uneindeutig))
   }
   return lines.join('\n') + '\n'
 }
@@ -280,7 +357,7 @@ export function toMarkdown(rows: TableRow[], title: string): string {
 export function toHtml(rows: TableRow[], title: string): string {
   const esc = (s: string) =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const { main, review, verweise } = splitRows(rows)
+  const { main, review, literatur, uneindeutig } = splitRows(rows)
   const tableOf = (list: TableRow[]) => `<table><thead><tr><th>Gesetz</th><th>Norm</th><th>Zitat-Varianten</th><th>Seiten</th><th>Status</th><th>Hinweis</th></tr></thead>
 <tbody>
 ${list
@@ -301,7 +378,8 @@ ${list
       ? `<h2>Bereichszitate &amp; „ff.“ – bitte selbst prüfen</h2>\n${tableOf(review)}`
       : ''
   const verweisSection =
-    verweise.length > 0 ? `<h2>Literatur- &amp; Kapitelverweise</h2>\n${tableOf(verweise)}` : ''
+    (literatur.length > 0 ? `<h2>Literaturverweise (KI-klassifiziert)</h2>\n${tableOf(literatur)}` : '') +
+    (uneindeutig.length > 0 ? `<h2>Uneindeutige Klassifizierungen</h2>\n${tableOf(uneindeutig)}` : '')
   return `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"><title>ParagraphenSuche – ${esc(title)}</title>
 <style>body{font-family:sans-serif;max-width:70rem;margin:2rem auto;padding:0 1rem}

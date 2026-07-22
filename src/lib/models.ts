@@ -36,6 +36,8 @@ export interface Citation {
   modifiers: Modifier[]
   /** Citations joined by "iVm" share a chain id (display only). */
   chainId?: number
+  /** Char offset in the extractor's joined text (context for AI checks). */
+  charIndex?: number
   /**
    * Literature/chapter reference ("Brox/Walker, SchuldR AT, § 22, Rn. 58"):
    * code-less with Rn-context or author prefix. The § numbers a chapter of
@@ -82,6 +84,10 @@ export interface TableRow {
   implicitOnly: boolean
   modifiers: Modifier[]
   staleness?: StalenessResult
+  /** Set after AI classification: verdict for this row. */
+  aiClass?: 'norm' | 'verweis' | 'unsicher'
+  /** Pages contributed by AI-classified citations (rendered with **). */
+  aiPages?: number[]
   /**
    * Per page: the raw citation snippets that put this page in the row
    * (for implied pages, the covering range/ff. citation). Drives the

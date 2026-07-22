@@ -221,6 +221,48 @@ h2[id] {
   scroll-margin-top: 0.75rem;
 }
 
+#ai-section {
+  background: var(--accent-light);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0 1.5rem;
+}
+
+#ai-section h3 {
+  margin: 0 0 0.4rem;
+  color: var(--accent);
+}
+
+#ai-section .hint-text {
+  font-size: 0.9rem;
+  color: #555;
+  margin-top: 0;
+}
+
+#ai-section input[type="password"] {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  width: 22rem;
+  max-width: 100%;
+}
+
+#ai-section progress {
+  width: 14rem;
+  margin-left: 0.75rem;
+  vertical-align: middle;
+}
+
+#ai-section #ai-status {
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--accent);
+}
+
+#ai-section button + button {
+  margin-left: 0.5rem;
+}
+
 footer {
   margin-top: 3rem;
   font-size: 0.85rem;

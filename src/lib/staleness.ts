@@ -105,11 +105,39 @@ export async function applyStaleness(
   onProgress?: (msg: string) => void,
   sources: Sources = realSources,
 ): Promise<void> {
+  try {
+    await applyStalenessInner(rows, registry, year, onProgress, sources)
+  } finally {
+    for (const row of rows) {
+      if (row.aiClass === 'norm' && row.staleness && !row.staleness.note.includes('KI-zugeordnet')) {
+        row.staleness.note += ' (Gesetz KI-zugeordnet – bitte prüfen.)'
+      }
+    }
+  }
+}
+
+async function applyStalenessInner(
+  rows: TableRow[],
+  registry: LawRegistry,
+  year: number,
+  onProgress?: (msg: string) => void,
+  sources: Sources = realSources,
+): Promise<void> {
   const yearEnd = `${year}-12-31`
   const laws = new Map<string, LawState>()
   let rateLimited = false
 
   for (const row of rows) {
+    if (row.aiClass === 'verweis' || row.aiClass === 'unsicher') {
+      row.staleness = {
+        status: 'UNKNOWN',
+        note:
+          row.aiClass === 'verweis'
+            ? 'KI-klassifiziert: Literaturverweis, keine Norm.'
+            : 'KI unsicher – bitte selbst prüfen.',
+      }
+      continue
+    }
     if (row.law === '[Verweis]') {
       row.staleness = {
         status: 'UNKNOWN',

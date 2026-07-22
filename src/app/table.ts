@@ -26,12 +26,13 @@ export type PageClickHandler = (row: TableRow, page: number) => void
 function pagesCell(row: TableRow, onPageClick?: PageClickHandler): HTMLTableCellElement {
   const td = el('td')
   const all = [
-    ...row.pages.map((p) => ({ p, implied: false })),
-    ...row.impliedPages.map((p) => ({ p, implied: true })),
+    ...row.pages.map((p) => ({ p, mark: '' })),
+    ...row.impliedPages.map((p) => ({ p, mark: '*' })),
+    ...(row.aiPages ?? []).map((p) => ({ p, mark: '**' })),
   ].sort((a, b) => a.p - b.p)
   all.forEach((e, i) => {
     if (i > 0) td.append(', ')
-    const label = e.implied ? `${e.p}*` : `${e.p}`
+    const label = `${e.p}${e.mark}`
     if (onPageClick) {
       const a = el('a', label)
       a.href = '#'
@@ -64,7 +65,7 @@ export function renderResults(
     warningsContainer.append(el('strong', 'Hinweise:'), ul)
   }
 
-  const { main, review, verweise } = splitRows(allRows)
+  const { main, review, literatur, uneindeutig } = splitRows(allRows)
   const sections: Array<{ id: string; label: string }> = []
   renderTable(container, main, `Gefundene Normen (${main.length})`, onPageClick, undefined, 'tbl-main')
   sections.push({ id: 'tbl-main', label: `Normen (${main.length})` })
@@ -79,22 +80,33 @@ export function renderResults(
     )
     sections.push({ id: 'tbl-review', label: `Bereichszitate (${review.length})` })
   }
-  if (verweise.length > 0) {
+  if (literatur.length > 0) {
     renderTable(
       container,
-      verweise,
-      `Literatur- & Kapitelverweise (${verweise.length})`,
+      literatur,
+      `Literaturverweise (${literatur.length}) – KI-klassifiziert`,
       onPageClick,
-      'Diese §-Angaben beziehen sich auf Kapitel zitierter Werke (z. B. „Brox/Walker, BGB AT, § 38, Rn. 1“), nicht auf Gesetze.',
-      'tbl-verweise',
+      'Diese §-Angaben beziehen sich laut KI auf Kapitel zitierter Werke (z. B. „Brox/Walker, BGB AT, § 38, Rn. 1“), nicht auf Gesetze.',
+      'tbl-literatur',
     )
-    sections.push({ id: 'tbl-verweise', label: `Verweise (${verweise.length})` })
+    sections.push({ id: 'tbl-literatur', label: `Literaturverweise (${literatur.length})` })
+  }
+  if (uneindeutig.length > 0) {
+    renderTable(
+      container,
+      uneindeutig,
+      `Uneindeutige Klassifizierungen (${uneindeutig.length})`,
+      onPageClick,
+      'Zitate ohne erkennbares Gesetz: Norm eines Gesetzes ohne Kürzel, Literatur-/Kapitelverweis oder Sonstiges. Mit KI klassifizierbar.',
+      'tbl-uneindeutig',
+    )
+    sections.push({ id: 'tbl-uneindeutig', label: `Uneindeutig (${uneindeutig.length})` })
   }
   renderSideNav(sections)
 
   const legend = el(
     'p',
-    '* Seite zitiert die Norm nur mittelbar über ein Bereichszitat (z. B. „§§ 812–822“ oder „ff.“).',
+    '* Seite über Bereichszitat (z. B. „§§ 812–822“, „ff.“) · ** Seite KI-klassifiziert.',
   )
   legend.style.fontSize = '0.85rem'
   legend.style.color = '#666'

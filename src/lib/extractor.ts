@@ -23,6 +23,8 @@ export interface ExtractResult {
   citations: Citation[]
   warnings: AnalysisWarning[]
   unresolvedCodes: Map<string, number> // candidate -> occurrences
+  /** The joined body+footnote text that offsets (charIndex) refer to. */
+  joinedText: string
 }
 
 const REJECT = new Set((aliasData.reject as string[]).map((r) => normalizeCodeKey(r)))
@@ -251,6 +253,7 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
           implicit,
           modifiers,
           chainId: rc.chainId,
+          charIndex: rc.index,
           verweis: verweis || undefined,
         })
       }
@@ -263,5 +266,5 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
     })
   }
 
-  return { citations, warnings, unresolvedCodes: unresolved }
+  return { citations, warnings, unresolvedCodes: unresolved, joinedText: text }
 }

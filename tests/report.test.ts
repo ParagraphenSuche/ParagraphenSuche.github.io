@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { extractFromPages, type CodeVerdict } from '../src/lib/extractor'
 import {
+  applyAiResults,
   groupCitations,
+  splitRows,
   toCsv,
   toMarkdown,
   compareSectionNumber,
@@ -130,5 +132,45 @@ describe('exports', () => {
     const { citations } = extractFromPages(['§ 823 BGB'], { checkCode })
     const md = toMarkdown(groupCitations(citations), 'Test')
     expect(md).toContain('| BGB | § 823 | § 823 BGB | 1 |')
+  })
+})
+
+describe('applyAiResults', () => {
+  const mkRow = (law: string, number: string, pages: number[]): import('../src/lib/models').TableRow => ({
+    law, kind: '§', number, variants: [`§ ${number}`], pages, impliedPages: [],
+    implicitOnly: false, modifiers: [], pageSources: {},
+  })
+  const normalize = (c: string) => c.toLowerCase().replace(/[\s.\-–]/g, '')
+  const keyOf = (r: import('../src/lib/models').TableRow) =>
+    `${r.law.startsWith('[') ? r.law : normalize(r.law)} ${r.kind} ${r.number}` +
+    (r.numberEnd ? `-${r.numberEnd}` : '') + (r.ff === 'ff.' ? ' ff.' : '')
+  it('verweis verdict moves row to literatur', () => {
+    const rows = [mkRow('[Verweis]', '22', [5])]
+    const out = applyAiResults(rows, new Map([[keyOf(rows[0]!), { typ: 'verweis' as const }]]), keyOf, normalize)
+    expect(splitRows(out).literatur).toHaveLength(1)
+  })
+  it('norm verdict merges into existing law row with aiPages', () => {
+    const rows = [mkRow('BGB', '433', [3]), mkRow('[?]', '433', [7])]
+    const out = applyAiResults(rows, new Map([[keyOf(rows[1]!), { typ: 'norm' as const, gesetz: 'BGB' }]]), keyOf, normalize)
+    expect(out).toHaveLength(1)
+    expect(out[0]!.pages).toEqual([3])
+    expect(out[0]!.aiPages).toEqual([7])
+  })
+  it('norm verdict without existing row converts with ** pages', () => {
+    const rows = [mkRow('[?]', '812', [9])]
+    const out = applyAiResults(rows, new Map([[keyOf(rows[0]!), { typ: 'norm' as const, gesetz: 'BGB' }]]), keyOf, normalize)
+    expect(out[0]!.law).toBe('BGB')
+    expect(out[0]!.aiPages).toEqual([9])
+    expect(out[0]!.pages).toEqual([])
+    expect(splitRows(out).main).toHaveLength(1)
+  })
+  it('unsicher and unbekannt stay uneindeutig', () => {
+    const rows = [mkRow('[?]', '1', [1]), mkRow('[?]', '2', [2])]
+    const res = new Map([
+      [keyOf(rows[0]!), { typ: 'unsicher' as const }],
+      [keyOf(rows[1]!), { typ: 'norm' as const, gesetz: 'unbekannt' }],
+    ])
+    const out = applyAiResults(rows, res, keyOf, normalize)
+    expect(splitRows(out).uneindeutig).toHaveLength(2)
   })
 })

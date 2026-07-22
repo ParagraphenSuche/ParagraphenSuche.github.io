@@ -4,7 +4,7 @@
  * staleness feature; tests and the offline path use a static set).
  */
 import type { AnalysisWarning, Citation, Modifier } from './models'
-import { cleanText } from './textclean'
+import { cleanText, stripRepeatedEdges } from './textclean'
 import { findCitations } from './grammar'
 import aliasData from '../data/aliases.json'
 
@@ -44,9 +44,28 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
   const warnings: AnalysisWarning[] = []
   const unresolved = new Map<string, number>()
 
-  pages.forEach((rawPage, i) => {
-    const page = i + 1
-    const text = cleanText(rawPage)
+  // Strip repeated headers/footers, then join all pages into one text so
+  // citations straddling a page break ("… nach § 123 <break> BGB …") still
+  // match; page attribution via the citation's start offset.
+  const cleaned = stripRepeatedEdges(pages).map(cleanText)
+  const pageStarts: number[] = []
+  let text = ''
+  for (const p of cleaned) {
+    pageStarts.push(text.length)
+    text += p + ' '
+  }
+  const pageOf = (index: number): number => {
+    let lo = 0
+    let hi = pageStarts.length - 1
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1
+      if (pageStarts[mid]! <= index) lo = mid
+      else hi = mid - 1
+    }
+    return lo + 1
+  }
+
+  {
     for (const chain of findCitations(text)) {
       const after = text.slice(chain.index + chain.raw.length)
       const rnContext = RN_AFTER_RE.test(after)
@@ -113,7 +132,7 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
 
         citations.push({
           raw: rc.raw,
-          page,
+          page: pageOf(rc.index),
           ref: rc.ref,
           lawCode,
           implicit,
@@ -122,7 +141,7 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
         })
       }
     }
-  })
+  }
 
   for (const [code, n] of unresolved) {
     warnings.push({

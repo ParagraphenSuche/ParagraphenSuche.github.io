@@ -184,6 +184,35 @@ describe('real-world patterns from LongTest', () => {
     expect(run('nach § 985 und § 1004 BGB')).toEqual(['§ 985 BGB', '§ 1004 BGB']))
 })
 
+describe('parentheticals inside citations', () => {
+  it('(!) between details and code', () =>
+    expect(run('wird, § 311b I 2 (!) BGB.')).toEqual(['§ 311b Abs. 1 S. 2 BGB']))
+  it('(a.M.: …) before ordinal detail', () =>
+    expect(run('über § 812 I 1 (a.M.: S. 2), 1. Alt BGB.')).toEqual([
+      '§ 812 Abs. 1 S. 1 Alt. 1 BGB',
+    ]))
+  it('parenthetical citations stay separate', () =>
+    expect(
+      run('des Kaufvertrages (§ 433 BGB) könnte §§ 125 S. 1, 311b I BGB entgegenstehen'),
+    ).toEqual(['§ 433 BGB', '§ 125 S. 1 BGB', '§ 311b Abs. 1 BGB']))
+})
+
+describe('cross-page citations', () => {
+  it('code on the following page attaches (headers stripped)', () => {
+    const pages = [
+      'Einleitungstext hier.\nSeite 1',
+      'Weiterer Text ohne Zitat.\nSeite 2',
+      'Noch mehr Inhalt.\nSeite 3',
+      'ein Anfechtungsrecht nach § 123\nSeite 4',
+      'Seite 5\nBGB der anderen Seite aus.',
+    ]
+    const { citations } = extractFromPages(pages, { checkCode })
+    expect(citations).toHaveLength(1)
+    expect(citations[0]!.lawCode).toBe('BGB')
+    expect(citations[0]!.page).toBe(4)
+  })
+})
+
 describe('heading junk after citations', () => {
   it('Roman heading does not glue onto code', () =>
     expect(run('nach § 142 BGB IV. Die Anfechtung')).toEqual(['§ 142 BGB']))

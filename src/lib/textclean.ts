@@ -1,4 +1,46 @@
 /**
+ * Removes repeated headers/footers ("hofmann", "Seite 43", running titles)
+ * from the start/end of each page so that citations straddling a page
+ * break can be matched across the join. A line qualifies when its
+ * digit-insensitive form appears near the edge of at least half the pages.
+ */
+export function stripRepeatedEdges(rawPages: string[]): string[] {
+  if (rawPages.length < 4) return rawPages
+  const EDGE = 3 // lines inspected at each page edge
+  const norm = (line: string) => line.replace(/\d+/g, '#').replace(/\s+/g, ' ').trim()
+
+  const counts = new Map<string, number>()
+  const pageLines = rawPages.map((p) => p.split('\n'))
+  for (const lines of pageLines) {
+    const edges = new Set<string>()
+    for (const line of [...lines.slice(0, EDGE), ...lines.slice(-EDGE)]) {
+      const n = norm(line)
+      if (n.length > 0 && n.length <= 80) edges.add(n)
+    }
+    for (const n of edges) counts.set(n, (counts.get(n) ?? 0) + 1)
+  }
+  const threshold = Math.max(3, Math.ceil(rawPages.length / 2))
+  const junk = new Set([...counts].filter(([, c]) => c >= threshold).map(([n]) => n))
+  if (junk.size === 0) return rawPages
+
+  return pageLines.map((lines) => {
+    let start = 0
+    let end = lines.length
+    for (let k = 0; k < EDGE && start < end; k++) {
+      const n = norm(lines[start]!)
+      if (n === '' || junk.has(n)) start++
+      else break
+    }
+    for (let k = 0; k < EDGE && end > start; k++) {
+      const n = norm(lines[end - 1]!)
+      if (n === '' || junk.has(n)) end--
+      else break
+    }
+    return lines.slice(start, end).join('\n')
+  })
+}
+
+/**
  * Cleanup of raw per-page PDF text so the citation grammar sees
  * predictable input: one long line, plain spaces, no ligatures,
  * words rejoined across line-break hyphenation.

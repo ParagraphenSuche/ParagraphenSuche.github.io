@@ -37,9 +37,10 @@ const IVM = String.raw`(?:i\.?\s?V\.?\s?m\.?|iVm\.?|in\s+Verb(?:indung|\.)\s+mit
 // Values may be small conjunctions: "Abs. 1 und 2", "Nr. 1, 2 und 5".
 // Continuation numbers must not steal the next enumeration item:
 // in "§§ 823 Abs. 1, 826 Abs. 2" the "826" belongs to a new ref, so a
-// continuation number followed by its own detail keyword is not consumed.
+// continuation number followed by its own detail keyword or Roman-numeral
+// shorthand ("…S. 1, 311b I BGB") is not consumed.
 const DETAIL_KEYWORD = String.raw`(?:Abs|S(?:atz|ätze|\.)|Halbs|Hs|Nrn?|Nummern?|Alt|Var|Doppelbuchst|Buchst|lit)`
-const NUMLIST = String.raw`\d{1,3}[a-z]?(?:\s*(?:,|und|oder|bis|[–—-])\s*\d{1,3}[a-z]?(?!\d)(?!\s*${DETAIL_KEYWORD}))*`
+const NUMLIST = String.raw`\d{1,3}[a-z]?(?:\s*(?:,|und|oder|bis|[–—-])\s*\d{1,3}[a-z]?(?![a-z\d])(?!\s*(?:${DETAIL_KEYWORD}|(?:${ROMAN})(?![A-Za-zÄÖÜäöüß.]))))*`
 const LETLIST = String.raw`[a-z]{1,2}\)?(?:\s*(?:,|und|oder|bis)\s*[a-z]{1,2}\)?)*`
 const DETAIL = String.raw`(?:\d{1,2}\.\s?(?:Alt(?:ernative)?|Var(?:iante)?|Halbs(?:atz)?|Hs)\.?|Abs(?:ätze|atz|\.)?\s*${NUMLIST}|S\.\s*${NUMLIST}|S(?:ätze|atz)\s*${NUMLIST}|Halbs(?:atz|\.)?\s*${NUMLIST}|Hs\.?\s*${NUMLIST}|Nrn?\.?\s*${NUMLIST}|Nummern?\s*${NUMLIST}|Alt(?:ernativen?|\.)?\s*${NUMLIST}|Var(?:ianten?|\.)?\s*${NUMLIST}|Doppelbuchst(?:abe|\.)?\s*[a-z]{2}|Buchst(?:aben?|\.)?\s*${LETLIST}|lit\.?\s*${LETLIST})`
 
@@ -49,10 +50,15 @@ const DETAIL = String.raw`(?:\d{1,2}\.\s?(?:Alt(?:ernative)?|Var(?:iante)?|Halbs
 const ROMAN_ITEM = String.raw`(?:${ROMAN})(?![A-Za-zÄÖÜäöüß.])(?:\s*\d{1,2}(?![.\d]))?`
 const ROMAN_SHORT = String.raw`${ROMAN_ITEM}(?:\s?(?:,|und|oder|bis|[–—-])\s?${ROMAN_ITEM})*`
 
+// Short parenthetical insertions inside citations are skipped:
+// "§ 311b I 2 (!) BGB", "§ 812 I 1 (a.M.: S. 2), 1. Alt BGB".
+// Must not contain a §/Art. sign — "(§ 433 BGB)" is its own citation.
+const PAREN = String.raw`\((?![^)]*(?:§|Art\.|Artikel))[^()]{1,40}\)`
+
 // One norm reference: number, optional range, optional f./ff., optional
 // details — explicit tokens and Roman shorthand may mix, optionally
 // comma-joined ("§ 119 I, 1. Alt. BGB").
-const REF = String.raw`${NUM}(?:\s?(?:[–—-]|bis)\s?${NUM})?(?:\s?ff?\.)?(?:\s?(?:,\s?)?(?:${DETAIL}|${ROMAN_SHORT}))*`
+const REF = String.raw`${NUM}(?:\s?(?:[–—-]|bis)\s?${NUM})?(?:\s?ff?\.)?(?:\s?(?:,\s?)?(?:${DETAIL}|${ROMAN_SHORT}|${PAREN}))*`
 
 // Enumeration of refs after a plural sign: "823, 826" / "823 Abs. 1, 826
 // Abs. 2" / "121 bzw. 124".
@@ -103,6 +109,7 @@ const ROMAN_SEP_RE = new RegExp(
 const INNER_PARA_RE = new RegExp(String.raw`\s?§\s?(\d{1,4})(?!\d)([a-z]{0,2})`, 'yu')
 const SEP_RE = new RegExp(String.raw`\s?(,|und|oder|bzw\.?)\s?`, 'yu')
 const COMMA_RE = new RegExp(String.raw`\s?,\s?`, 'yu')
+const PAREN_RE = new RegExp(String.raw`\s?${PAREN}`, 'yu')
 const MOD_RE = new RegExp(String.raw`\s?(a\.\s?F\.|n\.\s?F\.|analog|entsprechend)`, 'yu')
 const CODE_RE = new RegExp(String.raw`\s?(${CODE})`, 'yu')
 
@@ -179,6 +186,13 @@ function eatDetails(leg: string, pos: number, ref: NormRef): number {
       // Roman lists with non-comma joiners: "I und II", "II bis IV".
       const sep = eat(ROMAN_SEP_RE, leg, pos)
       if (sep) pos = sep.index + sep[0].length
+      continue
+    }
+
+    // Skip short parentheticals: "§ 311b I 2 (!) BGB".
+    const pm = eat(PAREN_RE, leg, pos)
+    if (pm) {
+      pos = pm.index + pm[0].length
       continue
     }
     break

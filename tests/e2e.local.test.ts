@@ -146,5 +146,13 @@ describe.skipIf(!existsSync(LONG))('e2e LongTest.pdf (Skript BGB AT)', () => {
     expect(get('121')?.implicitOnly).toBe(false)
     expect(get('124')?.pages).toContain(33)
     expect(get('126')?.variants.join(' ')).toContain('§ 126 Abs. 3 BGB') // § 126 III BGB
+
+    // Cross-page: "… nach § 123" ends p49, "BGB …" starts p50 (after header)
+    expect(get('123')?.pages).toContain(49)
+    expect(get('123')?.implicitOnly).toBe(false)
+    // Parentheticals inside citations: § 311b I 2 (!) BGB, § 812 I 1 (a.M.: S. 2), 1. Alt BGB
+    expect(get('311b')?.variants.join(' ')).toContain('§ 311b Abs. 1 S. 2 BGB')
+    expect(get('812')?.variants.join(' ')).toContain('§ 812 Abs. 1 S. 1 Alt. 1 BGB')
+    expect(get('812')?.implicitOnly).toBe(false)
   })
 })

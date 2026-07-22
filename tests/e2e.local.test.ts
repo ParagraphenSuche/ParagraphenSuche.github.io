@@ -36,7 +36,9 @@ describe.skipIf(!existsSync(SMALL))('e2e SmallTest.pdf', () => {
 
     const { citations } = extractFromPages(pages, { checkCode, implicitCode: 'BGB' })
     const rows = groupCitations(citations)
-    const byNumber = new Map(rows.map((r) => [`${r.law} ${r.number}`, r]))
+    const key = (r: (typeof rows)[number]) =>
+      `${r.law} ${r.number}${r.numberEnd ? `–${r.numberEnd}` : ''}`
+    const byNumber = new Map(rows.map((r) => [key(r), r]))
 
     // Page 1 (printed "Seite 9")
     expect(byNumber.get('BGB 1')?.pages).toContain(1) // vgl. § 1 BGB
@@ -48,16 +50,16 @@ describe.skipIf(!existsSync(SMALL))('e2e SmallTest.pdf', () => {
     expect(byNumber.get('BGB 90')?.pages).toContain(2) // § 90 BGB
     expect(byNumber.get('BGB 241')?.pages).toContain(2) // § 241 Abs. 1 BGB
     expect(byNumber.get('BGB 311')?.pages).toContain(2) // §§ 311 ff. BGB
-    // §§ 677–687, 812–822, 823–853, 985–1007 BGB
-    expect(byNumber.get('BGB 677')?.pages).toContain(2)
-    expect(byNumber.get('BGB 812')?.pages).toContain(2)
-    expect(byNumber.get('BGB 823')?.pages).toContain(2)
-    expect(byNumber.get('BGB 985')?.pages).toContain(2)
-    expect(byNumber.get('BGB 677')?.variants[0]).toContain('677–687')
+    // Ranges get their own rows: §§ 677–687, 812–822, 823–853, 985–1007 BGB
+    expect(byNumber.get('BGB 677–687')?.pages).toContain(2)
+    expect(byNumber.get('BGB 812–822')?.pages).toContain(2)
+    expect(byNumber.get('BGB 823–853')?.pages).toContain(2)
+    expect(byNumber.get('BGB 985–1007')?.pages).toContain(2)
 
     // Page 3 (printed "Seite 11")
-    expect(byNumber.get('BGB 241')?.pages).toContain(3) // §§ 241–432 BGB
-    expect(byNumber.get('BGB 433')?.pages).toContain(3) // §§ 433–853, § 433 Abs. 1 S. 1, § 433 Abs. 2
+    expect(byNumber.get('BGB 241–432')?.pages).toContain(3) // §§ 241–432 BGB
+    expect(byNumber.get('BGB 433–853')?.pages).toContain(3) // §§ 433–853 BGB
+    expect(byNumber.get('BGB 433')?.pages).toEqual([3, 4]) // § 433 Abs. 1 S. 1 / Abs. 2 / plain
     expect(byNumber.get('BGB 929')?.pages).toContain(3) // § 929 S. 1 BGB (2×)
 
     // Page 4 (printed "Seite 12")
@@ -66,19 +68,21 @@ describe.skipIf(!existsSync(SMALL))('e2e SmallTest.pdf', () => {
     expect(byNumber.get('BGB 413')?.pages).toContain(4) // § 413 BGB i.V.m. § 398 BGB
 
     // Implied coverage: §§ 241–432 BGB (page 3) also covers the separately
-    // cited §§ 311, 398, 413; §§ 433–853 (page 3) covers §§ 677, 812, 823.
+    // cited §§ 241, 311, 398, 413; §§ 433–853 covers § 433 (already direct
+    // on p3) and the range rows inside it.
+    expect(byNumber.get('BGB 241')?.impliedPages).toContain(3)
     expect(byNumber.get('BGB 311')?.impliedPages).toContain(3)
     expect(byNumber.get('BGB 398')?.impliedPages).toContain(3)
     expect(byNumber.get('BGB 413')?.impliedPages).toContain(3)
-    expect(byNumber.get('BGB 677')?.impliedPages).toContain(3)
+    expect(byNumber.get('BGB 677–687')?.impliedPages).toContain(3)
 
     // No junk rows: every row is BGB (implicit or explicit) on this document.
     for (const r of rows) {
       expect(r.law).toBe('BGB')
     }
 
-    // Roman/long-form must not create duplicate rows for the same §.
-    const keys = rows.map((r) => `${r.law} ${r.kind} ${r.number}`)
+    // Roman/long-form must not create duplicate rows for the same key.
+    const keys = rows.map((r) => `${r.kind} ${key(r)}`)
     expect(new Set(keys).size).toBe(keys.length)
   })
 })
@@ -88,17 +92,21 @@ describe.skipIf(!existsSync(LONG))('e2e LongTest.pdf (Skript BGB AT)', () => {
     const pages = await loadPdfPages(LONG)
     const { citations } = extractFromPages(pages, { checkCode, implicitCode: 'BGB' })
     const rows = groupCitations(citations)
-    const get = (n: string) => rows.find((r) => r.law === 'BGB' && r.number === n)
+    const get = (n: string) =>
+      rows.find((r) => r.law === 'BGB' && r.number === n && !r.ff && !r.numberEnd)
+    const getFf = (n: string) => rows.find((r) => r.law === 'BGB' && r.number === n && r.ff === 'ff.')
+    const getRange = (n: string) =>
+      rows.find((r) => r.law === 'BGB' && r.number === n && r.numberEnd)
 
     // Table of contents (PDF page 2) + intro (page 3)
     expect(get('133')?.pages).toContain(2) // §§ 133, 157 BGB
     expect(get('157')?.pages).toContain(2)
     expect(get('154')?.pages).toContain(2) // §§ 154, 155 BGB
-    expect(get('104')?.pages).toEqual(expect.arrayContaining([2, 3])) // §§ 104 ff. BGB
-    expect(get('116')?.variants.join(' ')).toContain('116–118') // §§ 116-118 BGB
+    expect(getFf('104')?.pages).toEqual(expect.arrayContaining([2, 3])) // §§ 104 ff. BGB
+    expect(getRange('116')?.variants.join(' ')).toContain('116–118') // §§ 116-118 BGB
     expect(get('119')?.pages).toEqual(expect.arrayContaining([2, 8, 9])) // § 119 I / II BGB
-    expect(get('21')?.pages).toContain(3) // §§ 21 ff. BGB
-    expect(get('194')?.pages).toEqual(expect.arrayContaining([2, 3])) // §§ 194 ff. BGB
+    expect(getFf('21')?.pages).toContain(3) // §§ 21 ff. BGB
+    expect(getFf('194')?.pages).toEqual(expect.arrayContaining([2, 3])) // §§ 194 ff. BGB
 
     // Roman shorthand with Satz: "§ 147 I 2 BGB" (page 4)
     expect(get('147')?.pages).toContain(4)
@@ -119,8 +127,10 @@ describe.skipIf(!existsSync(LONG))('e2e LongTest.pdf (Skript BGB AT)', () => {
     expect(get('599')?.pages).toContain(8)
     expect(get('690')?.pages).toContain(8)
 
-    expect(get('145')?.pages).toEqual(expect.arrayContaining([4, 6, 8, 9, 10])) // §§ 145 ff. / § 145 BGB
-    expect(get('164')?.pages).toEqual(expect.arrayContaining([2, 6])) // §§ 164 ff. / § 164 I BGB
+    expect(get('145')?.pages).toEqual(expect.arrayContaining([8, 9, 10])) // § 145 BGB
+    expect(getFf('145')?.pages).toEqual(expect.arrayContaining([4, 6])) // §§ 145 ff. BGB
+    expect(get('164')?.pages).toContain(6) // § 164 I BGB
+    expect(getFf('164')?.pages).toContain(2) // §§ 164 ff. BGB
     expect(get('598')?.pages).toContain(7) // § 598 BGB
     expect(get('280')?.pages).toContain(7) // § 280 I BGB
     expect(get('122')?.pages).toEqual(expect.arrayContaining([2, 9])) // § 122 (I) BGB

@@ -53,11 +53,15 @@ export interface StalenessResult {
   note: string
 }
 
-/** One row of the output table; key = (law, kind, number). */
+/** One row of the output table; key = (law, kind, number[, numberEnd]). */
 export interface TableRow {
   law: string // display code, "[?]" when unresolved
   kind: Kind
   number: string
+  /** Set for range rows ("§§ 433–853"), which get their own entry. */
+  numberEnd?: string
+  /** Set when this row represents an open-ended citation ("§ 104 ff."). */
+  ff?: 'f.' | 'ff.'
   /** Distinct canonical citation strings seen, e.g. ["§ 812 Abs. 1 S. 1 BGB", "§ 812 BGB"]. */
   variants: string[]
   /** Sorted, deduplicated 1-based page numbers. */

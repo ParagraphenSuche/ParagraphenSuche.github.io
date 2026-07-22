@@ -71,11 +71,12 @@ describe('extractNormText', () => {
   })
 })
 
-function mkRow(number: string, law = 'TG'): TableRow {
+function mkRow(number: string, law = 'TG', numberEnd?: string): TableRow {
   return {
     law,
     kind: '§',
     number,
+    numberEnd,
     variants: [],
     pages: [1],
     impliedPages: [],
@@ -126,6 +127,32 @@ describe('applyStaleness', () => {
     const rows = [mkRow('6', 'DSGVO'), mkRow('5', 'XYZG'), mkRow('7', '[?]')]
     await applyStaleness(rows, registry, 2015, undefined, okSources)
     expect(rows.map((r) => r.staleness?.status)).toEqual(['UNKNOWN', 'UNKNOWN', 'UNKNOWN'])
+  })
+
+  it('wide ranges skip per-§ verification with a warning', async () => {
+    const rows = [mkRow('1', 'TG', '100')]
+    await applyStaleness(rows, registry, 2015, undefined, okSources)
+    expect(rows[0]!.staleness?.status).toBe('LAW_CHANGED')
+    expect(rows[0]!.staleness?.note).toContain('Bereichszitat')
+    expect(rows[0]!.staleness?.note).toContain('selbst prüfen')
+  })
+
+  it('narrow ranges verify every norm and name the changed ones', async () => {
+    const rows = [mkRow('1', 'TG', '2')] // § 1 changed, § 2 unchanged
+    await applyStaleness(rows, registry, 2015, undefined, okSources)
+    expect(rows[0]!.staleness?.status).toBe('PARA_CHANGED')
+    expect(rows[0]!.staleness?.note).toContain('§ 1')
+  })
+
+  it('narrow range with only unchanged norms is PARA_UNCHANGED', async () => {
+    const sources: Sources = {
+      ...okSources,
+      fetchLawXmlAtRef: async () =>
+        lawXml({ stand: [], norms: { '§ 2': 'Unveränderter Text.' } }),
+    }
+    const rows = [mkRow('2', 'TG', '2')] // degenerate range width 1
+    await applyStaleness(rows, registry, 2015, undefined, sources)
+    expect(rows[0]!.staleness?.status).toBe('PARA_UNCHANGED')
   })
 
   it('fetches each law only once', async () => {

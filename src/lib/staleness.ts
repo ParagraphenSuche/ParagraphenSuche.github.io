@@ -8,6 +8,7 @@
  */
 import type { StalenessResult, TableRow } from './models'
 import type { LawRegistry } from './registry'
+import { normLabel, RANGE_VERIFY_LIMIT, rowSpanWidth } from './report'
 import * as realSources from './sources'
 import { RateLimitError } from './sources'
 
@@ -175,41 +176,77 @@ export async function applyStaleness(
     }
 
     const lawNote = `${row.law} zuletzt geändert ${fmtDate(amended)}.`
+
+    // Wide range citations ("§§ 433–853" = hundreds of norms): individual
+    // verification is disabled; warn so the user checks the relevant norms.
+    const rangeWidth = rowSpanWidth(row)
+    if (rangeWidth > RANGE_VERIFY_LIMIT) {
+      row.staleness = {
+        status: 'LAW_CHANGED',
+        lawLastAmended: amended,
+        note: `${lawNote} Bereichszitat über ca. ${rangeWidth} Normen – Einzelprüfung deaktiviert, bitte relevante Normen selbst prüfen.`,
+      }
+      continue
+    }
+
     if (law.snapshotXml && law.snapshotXml !== 'unavailable') {
-      const then = extractNormText(law.snapshotXml, row.kind, row.number)
-      const now = extractNormText(law.currentXml, row.kind, row.number)
-      if (then && now) {
-        row.staleness =
-          then === now
-            ? {
-                status: 'PARA_UNCHANGED',
-                lawLastAmended: amended,
-                note: `${lawNote} ${row.kind} ${row.number} selbst ist textgleich zum Stand ${year}.`,
-              }
-            : {
-                status: 'PARA_CHANGED',
-                lawLastAmended: amended,
-                note: `${row.kind} ${row.number} ${row.law} wurde seit ${year} geändert!`,
-              }
-        continue
+      // Numbers to verify: the single norm, every integer in a narrow
+      // range, or start + successor for "f.". For open-ended "ff." only
+      // the start norm is verifiable.
+      const start = parseInt(row.number, 10)
+      const numbers: string[] = row.numberEnd
+        ? Array.from({ length: rangeWidth }, (_, i) => String(start + i))
+        : row.ff === 'f.'
+          ? [row.number, String(start + 1)]
+          : [row.number]
+
+      const changed: string[] = []
+      const unknown: string[] = []
+      for (const num of numbers) {
+        const then = extractNormText(law.snapshotXml, row.kind, num)
+        const now = extractNormText(law.currentXml, row.kind, num)
+        if (then && now) {
+          if (then !== now) changed.push(num)
+        } else if (!then && !now) {
+          unknown.push(num)
+        } else {
+          changed.push(num) // inserted or repealed since the document year
+        }
       }
-      if (!then && now) {
+
+      const ffCaveat =
+        row.ff === 'ff.'
+          ? ' Umfang des ff.-Zitats unbestimmt – Folgenormen bitte selbst prüfen.'
+          : ''
+
+      if (changed.length > 0) {
+        const which =
+          numbers.length > 1
+            ? ` (geändert: ${changed.map((n) => `${row.kind} ${n}`).join(', ')})`
+            : ''
         row.staleness = {
           status: 'PARA_CHANGED',
           lawLastAmended: amended,
-          note: `${row.kind} ${row.number} ${row.law} wurde nach ${year} neu eingefügt.`,
+          note: `${normLabel(row)} ${row.law} wurde seit ${year} geändert!${which}${ffCaveat}`,
         }
         continue
       }
-      if (then && !now) {
+      if (unknown.length < numbers.length) {
+        const caveat =
+          unknown.length > 0
+            ? ` (${unknown.map((n) => `${row.kind} ${n}`).join(', ')} nicht auffindbar.)`
+            : ''
         row.staleness = {
-          status: 'PARA_CHANGED',
+          status: row.ff === 'ff.' ? 'LAW_CHANGED' : 'PARA_UNCHANGED',
           lawLastAmended: amended,
-          note: `${row.kind} ${row.number} ${row.law} existiert in der aktuellen Fassung nicht mehr (aufgehoben?).`,
+          note:
+            row.ff === 'ff.'
+              ? `${lawNote} Startnorm ${row.kind} ${row.number} ist textgleich zum Stand ${year}.${ffCaveat}`
+              : `${lawNote} ${normLabel(row)} selbst ist textgleich zum Stand ${year}.${caveat}`,
         }
         continue
       }
-      // in neither version — fall through to per-law verdict
+      // no verifiable norm — fall through to per-law verdict
     }
 
     row.staleness = {

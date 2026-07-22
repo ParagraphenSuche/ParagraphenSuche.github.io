@@ -2,7 +2,7 @@ import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { extractPages, looksScanned } from '../lib/pdftext'
 import { extractFromPages } from '../lib/extractor'
-import { groupCitations, sortRowsByStaleness } from '../lib/report'
+import { groupCitations, normLabel, sortRowsByStaleness } from '../lib/report'
 import { LawRegistry, fallbackRegistry } from '../lib/registry'
 import { applyStaleness } from '../lib/staleness'
 import { fetchTocSlugs } from '../lib/sources'
@@ -95,7 +95,7 @@ async function analyze(): Promise<void> {
         currentDoc,
         page,
         row.pageSources[page] ?? [`${row.kind} ${row.number}`],
-        `${row.kind} ${row.number} ${row.law}`,
+        `${normLabel(row)} ${row.law}`,
       )
     })
     renderDownloadButtons(resultsEl, rows, file.name)

@@ -1,5 +1,5 @@
 import type { AnalysisWarning, TableRow } from '../lib/models'
-import { statusLabel } from '../lib/report'
+import { normLabel, splitRows, statusLabel } from '../lib/report'
 
 const BADGE_CLASS: Record<string, string> = {
   PARA_CHANGED: 'stale',
@@ -50,7 +50,7 @@ function pagesCell(row: TableRow, onPageClick?: PageClickHandler): HTMLTableCell
 
 export function renderResults(
   container: HTMLElement,
-  rows: TableRow[],
+  allRows: TableRow[],
   warnings: AnalysisWarning[],
   warningsContainer: HTMLElement,
   onPageClick?: PageClickHandler,
@@ -64,7 +64,36 @@ export function renderResults(
     warningsContainer.append(el('strong', 'Hinweise:'), ul)
   }
 
-  const heading = el('h2', `Gefundene Normen (${rows.length})`)
+  const { main, review } = splitRows(allRows)
+  renderTable(container, main, `Gefundene Normen (${main.length})`, onPageClick)
+  if (review.length > 0) {
+    renderTable(
+      container,
+      review,
+      `Bereichszitate & „ff.“ (${review.length}) – bitte selbst prüfen`,
+      onPageClick,
+      'Diese Zitate umfassen viele bzw. unbestimmt viele Normen und werden nicht einzeln geprüft.',
+    )
+  }
+
+  const legend = el(
+    'p',
+    '* Seite zitiert die Norm nur mittelbar über ein Bereichszitat (z. B. „§§ 812–822“ oder „ff.“).',
+  )
+  legend.style.fontSize = '0.85rem'
+  legend.style.color = '#666'
+  container.append(legend)
+  container.hidden = false
+}
+
+function renderTable(
+  container: HTMLElement,
+  rows: TableRow[],
+  title: string,
+  onPageClick?: PageClickHandler,
+  subtitle?: string,
+): void {
+  const heading = el('h2', title)
   const table = el('table')
   const thead = el('thead')
   const headRow = el('tr')
@@ -82,7 +111,7 @@ export function renderResults(
       law.append(el('span', '(implizit)', 'badge info'))
     }
     tr.append(law)
-    tr.append(el('td', `${row.kind} ${row.number}`))
+    tr.append(el('td', normLabel(row)))
     tr.append(el('td', row.variants.join('; ')))
     tr.append(pagesCell(row, onPageClick))
     const status = el('td')
@@ -97,12 +126,12 @@ export function renderResults(
   }
 
   table.append(thead, tbody)
-  const legend = el(
-    'p',
-    '* Seite zitiert die Norm nur mittelbar über ein Bereichszitat (z. B. „§§ 812–822“ oder „ff.“).',
-  )
-  legend.style.fontSize = '0.85rem'
-  legend.style.color = '#666'
-  container.append(heading, table, legend)
-  container.hidden = false
+  container.append(heading)
+  if (subtitle) {
+    const sub = el('p', subtitle)
+    sub.style.fontSize = '0.9rem'
+    sub.style.color = '#666'
+    container.append(sub)
+  }
+  container.append(table)
 }

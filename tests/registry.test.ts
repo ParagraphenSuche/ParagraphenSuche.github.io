@@ -40,3 +40,13 @@ describe('LawRegistry.resolve', () => {
     expect(registry.check('XYZG')).toBe('unknown')
   })
 })
+
+describe('non-statute works and variants', () => {
+  it('VOB/B is a Klauselwerk', () => {
+    expect(registry.resolve('VOB/B')?.workKind).toBe('Klauselwerk')
+    expect(registry.check('VOB/B')).toBe('known')
+  })
+  it('LVwVfG is Landesrecht', () => {
+    expect(registry.resolve('LVwVfG')?.workKind).toBe('Landesrecht')
+  })
+})

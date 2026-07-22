@@ -165,3 +165,20 @@ describe('applyStaleness', () => {
     expect(fetches).toBe(1)
   })
 })
+
+describe('historic laws', () => {
+  const reg = new LawRegistry(['bgb'])
+  it('repealed after document year -> PARA_CHANGED with successor', async () => {
+    const rows = [mkRow('9', 'AGBG')]
+    await applyStaleness(rows, reg, 1999, undefined, okSources)
+    expect(rows[0]!.staleness?.status).toBe('PARA_CHANGED')
+    expect(rows[0]!.staleness?.note).toContain('aufgehoben')
+    expect(rows[0]!.staleness?.note).toContain('305')
+  })
+  it('repealed before document year -> informational UNKNOWN', async () => {
+    const rows = [mkRow('9', 'AGBG')]
+    await applyStaleness(rows, reg, 2010, undefined, okSources)
+    expect(rows[0]!.staleness?.status).toBe('UNKNOWN')
+    expect(rows[0]!.staleness?.note).toContain('außer Kraft')
+  })
+})

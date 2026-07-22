@@ -7,6 +7,7 @@ import type { AnalysisWarning, Citation, Modifier } from './models'
 import { cleanText, dropDuplicatedLayer, fixShiftedEncoding, stripRepeatedEdges } from './textclean'
 import { findCitations } from './grammar'
 import aliasData from '../data/aliases.json'
+import kommData from '../data/kommentare.json'
 
 export type CodeVerdict = 'known' | 'reject' | 'unknown'
 
@@ -56,6 +57,41 @@ const PAGEREF_AFTER_RE = /^\s?,\s?S\.\s?\d/
 // Edition markers right before a citation ("K. Schmidt Handelsrecht,
 // 5. Aufl. 1999, § 26 II 1") are literature context.
 const AUFL_BEFORE_RE = /\d{1,2}\.\s?Aufl\.?\s?\d{0,4},?\s*$/
+
+/**
+ * Single-law commentary brands: "Staudinger/Gursky § 985 Rn. 10" numbers a
+ * BGB norm even without a written code — commentaries are organized by the
+ * statute they comment on. Multi-law series carry the code in the work
+ * token (MüKoBGB, BeckOK ZPO) and resolve via that suffix.
+ */
+const KOMM = kommData as {
+  brands: Record<string, string>
+  pairs: Record<string, string>
+  seriesPrefixes: string[]
+}
+const KOMM_WORK_RE = /([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+)\/([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.-]+)[^§]{0,30}$/
+
+function commentaryLaw(before: string): string | undefined {
+  const m = KOMM_WORK_RE.exec(before)
+  if (!m) return undefined
+  const first = m[1]!.toLowerCase().replace(/-/g, '')
+  const pairKey = `${first}/${m[2]!.toLowerCase().replace(/[.-]/g, '')}`
+  if (KOMM.pairs[pairKey]) return KOMM.pairs[pairKey]
+  if (KOMM.brands[first]) return KOMM.brands[first]
+  // Series with embedded code: MüKoBGB/Wagner, BeckOK ZPO/…, jurisPK-BGB/…
+  for (const prefix of KOMM.seriesPrefixes) {
+    if (first.startsWith(prefix)) {
+      const suffix = first.slice(prefix.length).toUpperCase()
+      if (/^(BGB|HGB|ZPO|STPO|STGB|INSO|AKTG|GMBHG|GG|VWGO|VWVFG|OWIG)$/.test(suffix)) {
+        return suffix === 'STGB' ? 'StGB' : suffix === 'STPO' ? 'StPO'
+          : suffix === 'INSO' ? 'InsO' : suffix === 'AKTG' ? 'AktG'
+          : suffix === 'GMBHG' ? 'GmbHG' : suffix === 'VWGO' ? 'VwGO'
+          : suffix === 'VWVFG' ? 'VwVfG' : suffix === 'OWIG' ? 'OWiG' : suffix
+      }
+    }
+  }
+  return undefined
+}
 
 export function extractFromPages(pages: string[], opts: ExtractOptions): ExtractResult {
   const citations: Citation[] = []
@@ -159,6 +195,16 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
         // real citations when the leg's code validated — otherwise the
         // trailing number is likely prose ("nach § 823, 1000 Euro …").
         if (rc.enumExtra && !lawCode) continue
+
+        // Known single-law commentary before the citation: the § IS a norm
+        // of that commentary's law (inferred, shown as implicit).
+        if (!lawCode) {
+          const kommLaw = commentaryLaw(before)
+          if (kommLaw) {
+            lawCode = kommLaw
+            implicit = true
+          }
+        }
 
         // Code-less citation in a literature context: the § numbers a
         // chapter of the cited work, not a statute. Never give it the

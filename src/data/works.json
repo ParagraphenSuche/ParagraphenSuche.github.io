@@ -1,0 +1,141 @@
+{
+  "_comment": "Cited with § but not federal statutes: no staleness check; labeled by kind instead of 'unbekannt'. Staatsverträge/Landesrecht are state law (not on gesetze-im-internet).",
+  "works": [
+    {
+      "code": "VOB",
+      "kind": "Klauselwerk"
+    },
+    {
+      "code": "VOB/A",
+      "kind": "Klauselwerk"
+    },
+    {
+      "code": "VOB/B",
+      "kind": "Klauselwerk"
+    },
+    {
+      "code": "VOB/C",
+      "kind": "Klauselwerk"
+    },
+    {
+      "code": "VOL/A",
+      "kind": "Klauselwerk"
+    },
+    {
+      "code": "VOL/B",
+      "kind": "Klauselwerk"
+    },
+    {
+      "code": "VOF",
+      "kind": "Klauselwerk"
+    },
+    {
+      "code": "BAT",
+      "kind": "Tarifvertrag"
+    },
+    {
+      "code": "TVöD",
+      "kind": "Tarifvertrag"
+    },
+    {
+      "code": "TV-L",
+      "kind": "Tarifvertrag"
+    },
+    {
+      "code": "AGB-Banken",
+      "kind": "Klauselwerk"
+    },
+    {
+      "code": "AGB-Sparkassen",
+      "kind": "Klauselwerk"
+    },
+    {
+      "code": "ADSp",
+      "kind": "Klauselwerk"
+    },
+    {
+      "code": "DCGK",
+      "kind": "Klauselwerk"
+    },
+    {
+      "code": "EuGH-Satzung",
+      "kind": "Satzung"
+    },
+    {
+      "code": "BORA",
+      "kind": "Satzung"
+    },
+    {
+      "code": "FAO",
+      "kind": "Satzung"
+    },
+    {
+      "code": "MBO-Ä",
+      "kind": "Satzung"
+    },
+    {
+      "code": "CIC",
+      "kind": "Kirchenrecht"
+    },
+    {
+      "code": "RStV",
+      "kind": "Staatsvertrag"
+    },
+    {
+      "code": "MStV",
+      "kind": "Staatsvertrag"
+    },
+    {
+      "code": "JMStV",
+      "kind": "Staatsvertrag"
+    },
+    {
+      "code": "GlüStV",
+      "kind": "Staatsvertrag"
+    },
+    {
+      "code": "LottStV",
+      "kind": "Staatsvertrag"
+    },
+    {
+      "code": "RBStV",
+      "kind": "Staatsvertrag"
+    },
+    {
+      "code": "MDStV",
+      "kind": "Staatsvertrag"
+    },
+    {
+      "code": "GeschOEP",
+      "kind": "Geschäftsordnung"
+    },
+    {
+      "code": "GeschORat",
+      "kind": "Geschäftsordnung"
+    },
+    {
+      "code": "GeschOKom",
+      "kind": "Geschäftsordnung"
+    },
+    {
+      "code": "EuGH-VerfO",
+      "kind": "Verfahrensordnung"
+    },
+    {
+      "code": "LVwVfG",
+      "kind": "Landesrecht"
+    },
+    {
+      "code": "BayVwVfG",
+      "kind": "Landesrecht"
+    },
+    {
+      "code": "BayGO",
+      "kind": "Landesrecht"
+    },
+    {
+      "code": "ASOG",
+      "kind": "Landesrecht"
+    }
+  ]
+}

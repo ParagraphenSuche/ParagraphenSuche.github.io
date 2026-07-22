@@ -5,6 +5,8 @@
 import { normalizeCodeKey, isRejectedCode, type CodeVerdict } from './extractor'
 import aliasData from '../data/aliases.json'
 import euData from '../data/eu_laws.json'
+import worksData from '../data/works.json'
+import historicData from '../data/historic_laws.json'
 
 export interface ResolvedLaw {
   /** Display code, e.g. "BGB", "DSGVO". */
@@ -13,6 +15,10 @@ export interface ResolvedLaw {
   slug?: string
   /** True for EU/international instruments (no staleness check in v1). */
   eu?: boolean
+  /** Set for non-statute works (Klauselwerk, Tarifvertrag, Staatsvertrag …). */
+  workKind?: string
+  /** Set for repealed laws: when it ceased to be law and where it went. */
+  historic?: { name: string; repealed: string; successor: string }
 }
 
 interface EuLaw {
@@ -25,6 +31,8 @@ export class LawRegistry {
   private bySlugKey = new Map<string, string>() // normalized key -> slug
   private slugs: string[] = []
   private euByKey = new Map<string, EuLaw>()
+  private workByKey = new Map<string, { code: string; kind: string }>()
+  private historicByKey = new Map<string, { code: string; name: string; repealed: string; successor: string }>()
   private aliasToSlug = new Map<string, string | null>()
 
   constructor(slugs: string[]) {
@@ -42,6 +50,12 @@ export class LawRegistry {
     for (const [key, slug] of Object.entries(aliasData.slugAliases as Record<string, string | null>)) {
       this.aliasToSlug.set(normalizeCodeKey(key), slug)
     }
+    for (const w of (worksData as { works: Array<{ code: string; kind: string }> }).works) {
+      this.workByKey.set(normalizeCodeKey(w.code), w)
+    }
+    for (const h of (historicData as { laws: Array<{ code: string; name: string; repealed: string; successor: string }> }).laws) {
+      this.historicByKey.set(normalizeCodeKey(h.code), h)
+    }
     for (const law of (euData as { laws: EuLaw[] }).laws) {
       this.euByKey.set(normalizeCodeKey(law.code), law)
       for (const a of law.aliases) this.euByKey.set(normalizeCodeKey(a), law)
@@ -56,6 +70,9 @@ export class LawRegistry {
     if (alias !== undefined) {
       return alias === null ? null : { display: code, slug: alias }
     }
+
+    const work = this.workByKey.get(key)
+    if (work) return { display: work.code, workKind: work.kind }
 
     const eu = this.euByKey.get(key)
     if (eu) return { display: eu.code, eu: true }
@@ -82,6 +99,15 @@ export class LawRegistry {
         .sort()
         .reverse()
       if (prefixed.length > 0) return { display: code, slug: prefixed[0]! }
+    }
+
+    // Repealed laws (only reached when no CURRENT law matched).
+    const historic = this.historicByKey.get(key)
+    if (historic) {
+      return {
+        display: historic.code,
+        historic: { name: historic.name, repealed: historic.repealed, successor: historic.successor },
+      }
     }
 
     // Unknown -VO/-RL suffix: treat as an (unchecked) EU instrument —

@@ -65,7 +65,9 @@ export function renderResults(
   }
 
   const { main, review, verweise } = splitRows(allRows)
-  renderTable(container, main, `Gefundene Normen (${main.length})`, onPageClick)
+  const sections: Array<{ id: string; label: string }> = []
+  renderTable(container, main, `Gefundene Normen (${main.length})`, onPageClick, undefined, 'tbl-main')
+  sections.push({ id: 'tbl-main', label: `Normen (${main.length})` })
   if (review.length > 0) {
     renderTable(
       container,
@@ -73,7 +75,9 @@ export function renderResults(
       `Bereichszitate & „ff.“ (${review.length}) – bitte selbst prüfen`,
       onPageClick,
       'Diese Zitate umfassen viele bzw. unbestimmt viele Normen und werden nicht einzeln geprüft.',
+      'tbl-review',
     )
+    sections.push({ id: 'tbl-review', label: `Bereichszitate (${review.length})` })
   }
   if (verweise.length > 0) {
     renderTable(
@@ -82,8 +86,11 @@ export function renderResults(
       `Literatur- & Kapitelverweise (${verweise.length})`,
       onPageClick,
       'Diese §-Angaben beziehen sich auf Kapitel zitierter Werke (z. B. „Brox/Walker, BGB AT, § 38, Rn. 1“), nicht auf Gesetze.',
+      'tbl-verweise',
     )
+    sections.push({ id: 'tbl-verweise', label: `Verweise (${verweise.length})` })
   }
+  renderSideNav(sections)
 
   const legend = el(
     'p',
@@ -95,14 +102,35 @@ export function renderResults(
   container.hidden = false
 }
 
+function renderSideNav(sections: Array<{ id: string; label: string }>): void {
+  document.getElementById('side-nav')?.remove()
+  if (sections.length < 2) return
+  const nav = document.createElement('nav')
+  nav.id = 'side-nav'
+  nav.setAttribute('aria-label', 'Tabellen')
+  for (const s of sections) {
+    const a = document.createElement('a')
+    a.href = `#${s.id}`
+    a.textContent = s.label
+    a.addEventListener('click', (e) => {
+      e.preventDefault()
+      document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+    nav.append(a)
+  }
+  document.body.append(nav)
+}
+
 function renderTable(
   container: HTMLElement,
   rows: TableRow[],
   title: string,
   onPageClick?: PageClickHandler,
   subtitle?: string,
+  id?: string,
 ): void {
   const heading = el('h2', title)
+  if (id) heading.id = id
   const table = el('table')
   const thead = el('thead')
   const headRow = el('tr')

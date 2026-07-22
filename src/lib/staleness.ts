@@ -126,6 +126,30 @@ export async function applyStaleness(
       }
       continue
     }
+    if (resolved.historic) {
+      const rep = resolved.historic.repealed
+      const repYear = parseInt(rep.slice(0, 4), 10)
+      const [ry, rm, rd] = rep.split('-')
+      const repDate = rd ? `${parseInt(rd, 10)}.${parseInt(rm!, 10)}.${ry}` : rep
+      row.staleness =
+        repYear > year
+          ? {
+              status: 'PARA_CHANGED',
+              note: `${resolved.display} wurde zum ${repDate} aufgehoben – heute: ${resolved.historic.successor}.`,
+            }
+          : {
+              status: 'UNKNOWN',
+              note: `${resolved.display} war bereits seit ${repDate} außer Kraft (heute: ${resolved.historic.successor}).`,
+            }
+      continue
+    }
+    if (resolved.workKind) {
+      row.staleness = {
+        status: 'UNKNOWN',
+        note: `Kein Bundesgesetz – ${resolved.workKind} (keine Änderungsprüfung möglich).`,
+      }
+      continue
+    }
     if (resolved.eu || !resolved.slug) {
       row.staleness = { status: 'UNKNOWN', note: 'EU-/internationales Recht wird noch nicht geprüft.' }
       continue

@@ -389,3 +389,33 @@ describe('edition-marker literature context', () => {
     expect(citations[0]!.verweis).toBe(true)
   })
 })
+
+describe('commentary-brand law inference', () => {
+  it('Staudinger implies BGB', () => {
+    const { citations } = extractFromPages(['Staudinger/Gursky (2006), § 985 Rn. 15.'], { checkCode })
+    expect(citations[0]!.lawCode).toBe('BGB')
+    expect(citations[0]!.verweis).toBeUndefined()
+  })
+  it('Zöller implies ZPO', () => {
+    const { citations } = extractFromPages(['Zöller/Greger § 253 Rn. 5'], { checkCode })
+    expect(citations[0]!.lawCode).toBe('ZPO')
+  })
+  it('Kopp/Ramsauer vs Kopp/Schenke disambiguate', () => {
+    const a = extractFromPages(['Kopp/Ramsauer, § 48 Rn. 12'], { checkCode }).citations
+    const b = extractFromPages(['Kopp/Schenke, § 42 Rn. 5'], { checkCode }).citations
+    expect(a[0]!.lawCode).toBe('VwVfG')
+    expect(b[0]!.lawCode).toBe('VwGO')
+  })
+  it('MüKoBGB series suffix resolves', () => {
+    const { citations } = extractFromPages(['MüKoBGB/Wagner, § 823 Rn. 5'], { checkCode })
+    expect(citations[0]!.lawCode).toBe('BGB')
+  })
+  it('textbook authors stay Verweis', () => {
+    const { citations } = extractFromPages(['Medicus/Lorenz SchuldR AT, § 41 Rn. 2'], {
+      checkCode,
+      implicitCode: 'BGB',
+    })
+    expect(citations[0]!.verweis).toBe(true)
+    expect(citations[0]!.lawCode).toBeUndefined()
+  })
+})

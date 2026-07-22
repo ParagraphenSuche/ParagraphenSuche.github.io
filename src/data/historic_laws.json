@@ -1,0 +1,299 @@
+{
+ "_comment": "Repealed federal laws commonly cited in older textbooks. Dates verified (Wikipedia/buzer/dejure, 2026-07). Checked AFTER slug matching, so current laws always win.",
+ "laws": [
+  {
+   "code": "AGBG",
+   "name": "AGB-Gesetz",
+   "repealed": "2002-01-01",
+   "successor": "§§ 305–310 BGB; UKlaG"
+  },
+  {
+   "code": "AGB-Gesetz",
+   "name": "AGB-Gesetz",
+   "repealed": "2002-01-01",
+   "successor": "§§ 305–310 BGB; UKlaG"
+  },
+  {
+   "code": "VerbrKrG",
+   "name": "Verbraucherkreditgesetz",
+   "repealed": "2002-01-01",
+   "successor": "§§ 491 ff. BGB"
+  },
+  {
+   "code": "HWiG",
+   "name": "Haustürwiderrufsgesetz",
+   "repealed": "2002-01-01",
+   "successor": "heute §§ 312b ff. BGB"
+  },
+  {
+   "code": "HaustürWG",
+   "name": "Haustürwiderrufsgesetz",
+   "repealed": "2002-01-01",
+   "successor": "heute §§ 312b ff. BGB"
+  },
+  {
+   "code": "FernAbsG",
+   "name": "Fernabsatzgesetz",
+   "repealed": "2002-01-01",
+   "successor": "heute §§ 312c ff. BGB"
+  },
+  {
+   "code": "BGB-InfoV",
+   "name": "BGB-Informationspflichten-Verordnung",
+   "repealed": "2018-07-01",
+   "successor": "Art. 246 ff. EGBGB"
+  },
+  {
+   "code": "AbzG",
+   "name": "Abzahlungsgesetz",
+   "repealed": "1991-01-01",
+   "successor": "heute §§ 491 ff., 506 ff. BGB"
+  },
+  {
+   "code": "TDG",
+   "name": "Teledienstegesetz",
+   "repealed": "2007-03-01",
+   "successor": "TMG; heute DDG"
+  },
+  {
+   "code": "TDDSG",
+   "name": "Teledienstedatenschutzgesetz",
+   "repealed": "2007-03-01",
+   "successor": "heute TDDDG"
+  },
+  {
+   "code": "TMG",
+   "name": "Telemediengesetz",
+   "repealed": "2024-05-14",
+   "successor": "DDG; Datenschutz im TDDDG"
+  },
+  {
+   "code": "IuKDG",
+   "name": "Informations- und Kommunikationsdienste-Gesetz",
+   "repealed": "2007-03-01",
+   "successor": "heute DDG/TDDDG"
+  },
+  {
+   "code": "SigG",
+   "name": "Signaturgesetz",
+   "repealed": "2017-07-29",
+   "successor": "eIDAS-VO und VDG"
+  },
+  {
+   "code": "TDSV",
+   "name": "Telekommunikations-Datenschutzverordnung",
+   "repealed": "2004-06-26",
+   "successor": "heute TDDDG"
+  },
+  {
+   "code": "TKV",
+   "name": "Telekommunikations-Kundenschutzverordnung",
+   "repealed": "2007-02-24",
+   "successor": "§§ 43a ff. TKG"
+  },
+  {
+   "code": "FGG",
+   "name": "Gesetz über die Angelegenheiten der freiwilligen Gerichtsbarkeit",
+   "repealed": "2009-09-01",
+   "successor": "FamFG"
+  },
+  {
+   "code": "KO",
+   "name": "Konkursordnung",
+   "repealed": "1999-01-01",
+   "successor": "InsO"
+  },
+  {
+   "code": "VerglO",
+   "name": "Vergleichsordnung",
+   "repealed": "1999-01-01",
+   "successor": "InsO"
+  },
+  {
+   "code": "GesO",
+   "name": "Gesamtvollstreckungsordnung",
+   "repealed": "1999-01-01",
+   "successor": "InsO"
+  },
+  {
+   "code": "RabattG",
+   "name": "Rabattgesetz",
+   "repealed": "2001-07-25",
+   "successor": "ersatzlos; Grenzen im UWG"
+  },
+  {
+   "code": "ZugabeVO",
+   "name": "Zugabeverordnung",
+   "repealed": "2001-07-25",
+   "successor": "ersatzlos; Grenzen im UWG"
+  },
+  {
+   "code": "LohnFG",
+   "name": "Lohnfortzahlungsgesetz",
+   "repealed": "2006-01-01",
+   "successor": "EntgFG"
+  },
+  {
+   "code": "LFZG",
+   "name": "Lohnfortzahlungsgesetz",
+   "repealed": "2006-01-01",
+   "successor": "EntgFG"
+  },
+  {
+   "code": "SchwbG",
+   "name": "Schwerbehindertengesetz",
+   "repealed": "2001-07-01",
+   "successor": "SGB IX"
+  },
+  {
+   "code": "AZO",
+   "name": "Arbeitszeitordnung",
+   "repealed": "1994-07-01",
+   "successor": "ArbZG"
+  },
+  {
+   "code": "BeschFG",
+   "name": "Beschäftigungsförderungsgesetz",
+   "repealed": "2001-01-01",
+   "successor": "TzBfG"
+  },
+  {
+   "code": "AFG",
+   "name": "Arbeitsförderungsgesetz",
+   "repealed": "1998-01-01",
+   "successor": "SGB III"
+  },
+  {
+   "code": "BSHG",
+   "name": "Bundessozialhilfegesetz",
+   "repealed": "2005-01-01",
+   "successor": "SGB XII"
+  },
+  {
+   "code": "ADHGB",
+   "name": "Allgemeines Deutsches Handelsgesetzbuch",
+   "repealed": "1900-01-01",
+   "successor": "HGB"
+  },
+  {
+   "code": "EheG",
+   "name": "Ehegesetz",
+   "repealed": "1998-07-01",
+   "successor": "§§ 1303 ff. BGB"
+  },
+  {
+   "code": "MHG",
+   "name": "Miethöhegesetz",
+   "repealed": "2001-09-01",
+   "successor": "§§ 557 ff. BGB"
+  },
+  {
+   "code": "BRAGO",
+   "name": "Bundesgebührenordnung für Rechtsanwälte",
+   "repealed": "2004-07-01",
+   "successor": "RVG"
+  },
+  {
+   "code": "KostO",
+   "name": "Kostenordnung",
+   "repealed": "2013-08-01",
+   "successor": "GNotKG"
+  },
+  {
+   "code": "ZSEG",
+   "name": "Zeugen- und Sachverständigenentschädigungsgesetz",
+   "repealed": "2004-07-01",
+   "successor": "JVEG"
+  },
+  {
+   "code": "JÖSchG",
+   "name": "Gesetz zum Schutze der Jugend in der Öffentlichkeit",
+   "repealed": "2003-04-01",
+   "successor": "JuSchG"
+  },
+  {
+   "code": "GjS",
+   "name": "Gesetz über die Verbreitung jugendgefährdender Schriften",
+   "repealed": "2003-04-01",
+   "successor": "JuSchG"
+  },
+  {
+   "code": "GjSM",
+   "name": "GjS und Medieninhalte",
+   "repealed": "2003-04-01",
+   "successor": "JuSchG"
+  },
+  {
+   "code": "BErzGG",
+   "name": "Bundeserziehungsgeldgesetz",
+   "repealed": "2008-12-31",
+   "successor": "BEEG"
+  },
+  {
+   "code": "MPG",
+   "name": "Medizinproduktegesetz",
+   "repealed": "2021-05-26",
+   "successor": "MPDG und EU-MDR"
+  },
+  {
+   "code": "BRRG",
+   "name": "Beamtenrechtsrahmengesetz",
+   "repealed": "2009-04-01",
+   "successor": "BeamtStG"
+  },
+  {
+   "code": "StHG",
+   "name": "Staatshaftungsgesetz 1981",
+   "repealed": "1982-10-19",
+   "successor": "nichtig (BVerfGE 61, 149); § 839 BGB iVm Art. 34 GG"
+  },
+  {
+   "code": "AuslG",
+   "name": "Ausländergesetz",
+   "repealed": "2005-01-01",
+   "successor": "AufenthG"
+  },
+  {
+   "code": "RBerG",
+   "name": "Rechtsberatungsgesetz",
+   "repealed": "2008-07-01",
+   "successor": "RDG"
+  },
+  {
+   "code": "HausratsVO",
+   "name": "Hausratsverordnung",
+   "repealed": "2009-09-01",
+   "successor": "§§ 1568a f. BGB; §§ 200 ff. FamFG"
+  },
+  {
+   "code": "WZG",
+   "name": "Warenzeichengesetz",
+   "repealed": "1995-01-01",
+   "successor": "MarkenG"
+  },
+  {
+   "code": "GeschmMG",
+   "name": "Geschmacksmustergesetz",
+   "repealed": "2014-01-01",
+   "successor": "DesignG"
+  },
+  {
+   "code": "GSG",
+   "name": "Gerätesicherheitsgesetz",
+   "repealed": "2004-05-01",
+   "successor": "heute ProdSG"
+  },
+  {
+   "code": "GPSG",
+   "name": "Geräte- und Produktsicherheitsgesetz",
+   "repealed": "2011-12-01",
+   "successor": "ProdSG"
+  },
+  {
+   "code": "MRRG",
+   "name": "Melderechtsrahmengesetz",
+   "repealed": "2015-11-01",
+   "successor": "BMG"
+  }
+ ]
+}

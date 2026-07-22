@@ -39,7 +39,7 @@ describe('groupCitations', () => {
   })
 
   it('marks implicit-only rows', () => {
-    const { citations } = extractFromPages(['§ 823 Abs. 1 sowie § 826 BGB'], {
+    const { citations } = extractFromPages(['Nach § 823 Abs. 1 haftet X. Daneben gilt § 826 BGB.'], {
       checkCode,
       implicitCode: 'BGB',
     })

@@ -3,7 +3,8 @@ export type Kind = '§' | 'Art.'
 
 /** One element of the subdivision chain, in citation order. */
 export interface Detail {
-  level: 'Abs.' | 'S.' | 'Hs.' | 'Nr.' | 'lit.' | 'Alt.' | 'Var.' | 'Doppelbuchst.'
+  /** '§' covers the EGBGB pattern "Art. 246a § 1 Abs. 2 S. 2 EGBGB". */
+  level: '§' | 'Abs.' | 'S.' | 'Hs.' | 'Nr.' | 'lit.' | 'Alt.' | 'Var.' | 'Doppelbuchst.'
   /** Normalized value, e.g. "1", "1 und 2", "3-5", "f". */
   value: string
 }

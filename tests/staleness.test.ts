@@ -64,6 +64,11 @@ describe('extractNormText', () => {
   it('returns null for missing norm', () => {
     expect(extractNormText(CURRENT, '§', '99')).toBeNull()
   })
+  it('EGBGB-style Artikel via gliederungsbez', () => {
+    const xml = `<dokumente><norm><metadaten><gliederungseinheit><gliederungsbez>Art 246a</gliederungsbez></gliederungseinheit></metadaten></norm><norm><metadaten><enbez>§ 1</enbez></metadaten><textdaten><text><Content><P>Informationspflichten Text.</P></Content></text></textdaten></norm><norm><metadaten><gliederungseinheit><gliederungsbez>Art 246b</gliederungsbez></gliederungseinheit></metadaten></norm></dokumente>`
+    expect(extractNormText(xml, 'Art.', '246a')).toContain('Informationspflichten Text.')
+    expect(extractNormText(xml, 'Art.', '246a')).not.toContain('246b')
+  })
 })
 
 function mkRow(number: string, law = 'TG'): TableRow {

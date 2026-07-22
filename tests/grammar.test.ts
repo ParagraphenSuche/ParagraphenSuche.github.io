@@ -5,7 +5,7 @@ import { canonical } from '../src/lib/models'
 const KNOWN = new Set(
   [
     'BGB', 'StGB', 'ZPO', 'StPO', 'GG', 'HGB', 'VVG', 'GmbHG', 'AktG', 'EStG', 'InsO',
-    'VwGO', 'VwVfG', 'UWG', 'UrhG', 'MarkenG', 'BImSchG', 'SGB V', 'SGB II', 'G 10',
+    'VwGO', 'VwVfG', 'UWG', 'UrhG', 'MarkenG', 'BImSchG', 'SGB V', 'SGB II', 'G 10', 'EGBGB',
     'DSGVO', 'AEUV', 'EUV', 'GRCh', 'EMRK', 'WEG', 'StVG', 'ProdHaftG', 'BDSG',
   ].map((c) => c.toLowerCase().replace(/[\s.\-]/g, '')),
 )
@@ -158,6 +158,30 @@ describe('Rn. commentary context', () => {
     })
     expect(citations).toHaveLength(1)
   })
+})
+
+describe('real-world patterns from LongTest', () => {
+  it('EGBGB compound: Artikel containing §', () =>
+    expect(run('Widerrufsbelehrung (§ 356 III BGB i.V.m. Art. 246a § 1 II 2 EGBGB)')).toEqual([
+      '§ 356 Abs. 3 BGB',
+      'Art. 246a § 1 Abs. 2 S. 2 EGBGB',
+    ]))
+  it('Roman list: Art. 4 I, II GG', () =>
+    expect(run('im Hinblick auf Art. 4 I, II GG (Religionsfreiheit)')).toEqual([
+      'Art. 4 Abs. 1, 2 GG',
+    ]))
+  it('Roman list with und', () =>
+    expect(run('§ 823 I und II BGB')).toEqual(['§ 823 Abs. 1, 2 BGB']))
+  it('ordinal Alternative: § 119 I, 1. Alt. BGB', () =>
+    expect(run('gem. § 119 I, 1. Alt. BGB angefochten')).toEqual(['§ 119 Abs. 1 Alt. 1 BGB']))
+  it('ordinal Alternative without dot', () =>
+    expect(run('Inhaltsirrtum (§ 119 I, 1. Alt BGB)')).toEqual(['§ 119 Abs. 1 Alt. 1 BGB']))
+  it('bzw. enumeration: §§ 121 bzw. 124 BGB', () =>
+    expect(run('Anfechtungsfrist (§§ 121 bzw. 124 BGB)')).toEqual(['§ 121 BGB', '§ 124 BGB']))
+  it('comma-joined chain propagates code', () =>
+    expect(run('aus § 823 Abs. 1, § 826 BGB')).toEqual(['§ 823 Abs. 1 BGB', '§ 826 BGB']))
+  it('und-joined chain propagates code', () =>
+    expect(run('nach § 985 und § 1004 BGB')).toEqual(['§ 985 BGB', '§ 1004 BGB']))
 })
 
 describe('heading junk after citations', () => {

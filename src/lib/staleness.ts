@@ -48,8 +48,26 @@ export function extractNormText(xml: string, kind: '§' | 'Art.', number: string
     's',
   )
   const m = re.exec(xml)
-  if (!m) return null
-  const text = m[1]!.match(/<textdaten>(.*)<\/textdaten>/s)?.[1] ?? m[1]!
+  if (m) {
+    const text = m[1]!.match(/<textdaten>(.*)<\/textdaten>/s)?.[1] ?? m[1]!
+    return stripXml(text)
+  }
+
+  // EGBGB-style laws store Artikel as section headers (<gliederungsbez>
+  // "Art 246a") whose actual norms carry §-enbez. Compare the whole
+  // section: everything up to the next gliederungsbez.
+  if (kind === 'Art.') {
+    const gre = new RegExp(
+      String.raw`<gliederungsbez>\s*Art(?:ikel|\.)?\s*${escapeRe(number)}\s*</gliederungsbez>(.*?)(?=<gliederungsbez>|$)`,
+      's',
+    )
+    const gm = gre.exec(xml)
+    if (gm) return stripXml(gm[1]!)
+  }
+  return null
+}
+
+function stripXml(text: string): string {
   return text
     .replace(/<[^>]+>/g, ' ')
     .replace(/&amp;/g, '&')

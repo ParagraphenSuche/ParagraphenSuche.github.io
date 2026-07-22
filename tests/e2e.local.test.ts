@@ -124,5 +124,17 @@ describe.skipIf(!existsSync(LONG))('e2e LongTest.pdf (Skript BGB AT)', () => {
     expect(get('598')?.pages).toContain(7) // § 598 BGB
     expect(get('280')?.pages).toContain(7) // § 280 I BGB
     expect(get('122')?.pages).toEqual(expect.arrayContaining([2, 9])) // § 122 (I) BGB
+
+    // User-reported cases (pages 23/33/42/43):
+    const egbgb = rows.find((r) => r.law === 'EGBGB' && r.number === '246a')
+    expect(egbgb?.pages).toContain(43) // Art. 246a § 1 II 2 EGBGB
+    expect(egbgb?.kind).toBe('Art.')
+    const gg4 = rows.find((r) => r.law === 'GG' && r.number === '4')
+    expect(gg4?.pages).toContain(42) // Art. 4 I, II GG
+    expect(get('119')?.variants.join(' ')).toContain('Alt. 1') // § 119 I, 1. Alt. BGB
+    expect(get('121')?.pages).toContain(33) // §§ 121 bzw. 124 BGB
+    expect(get('121')?.implicitOnly).toBe(false)
+    expect(get('124')?.pages).toContain(33)
+    expect(get('126')?.variants.join(' ')).toContain('§ 126 Abs. 3 BGB') // § 126 III BGB
   })
 })

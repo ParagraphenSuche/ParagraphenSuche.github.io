@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ParagraphenSuche – Gesetzeszitate im PDF finden und prüfen</title>
+  <link rel="stylesheet" href="/src/app/style.css" />
+</head>
+<body>
+  <header>
+    <h1>§ ParagraphenSuche</h1>
+    <p class="subtitle">
+      Findet alle Gesetzeszitate in einem juristischen PDF, listet die Fundseiten auf
+      und prüft, ob die zitierten Normen seit Erscheinen des Dokuments geändert wurden.
+      Das PDF verlässt Ihren Rechner nicht – die Auswertung läuft vollständig im Browser.
+    </p>
+  </header>
+
+  <main>
+    <form id="analyze-form">
+      <div class="field">
+        <label for="pdf-input">Dokument (PDF)</label>
+        <input type="file" id="pdf-input" accept="application/pdf" required />
+      </div>
+      <div class="field">
+        <label for="year-input">Erscheinungsjahr <span class="hint">(optional – für die Änderungsprüfung)</span></label>
+        <input type="number" id="year-input" min="1949" max="2100" placeholder="z.&nbsp;B. 2015" />
+      </div>
+      <div class="field">
+        <label for="implicit-input">Implizites Gesetz <span class="hint">(optional – z.&nbsp;B. „BGB“ bei einem BGB-Lehrbuch)</span></label>
+        <input type="text" id="implicit-input" placeholder="z.&nbsp;B. BGB" />
+      </div>
+      <div class="field checkbox">
+        <label><input type="checkbox" id="drop-rn-input" /> Kommentar-Fundstellen (Rn.) ausschließen</label>
+      </div>
+      <button type="submit" id="analyze-button">Analysieren</button>
+    </form>
+
+    <section id="progress" hidden></section>
+    <section id="warnings" hidden></section>
+    <section id="results" hidden></section>
+  </main>
+
+  <footer>
+    <p>
+      Datenquelle für die Änderungsprüfung:
+      <a href="https://www.gesetze-im-internet.de/" rel="noopener">gesetze-im-internet.de</a>
+      (über den täglichen <a href="https://github.com/QuantLaw/gesetze-im-internet" rel="noopener">QuantLaw-Spiegel</a>).
+      Ohne Gewähr – alle Angaben können unvollständig oder fehlerhaft sein.
+    </p>
+  </footer>
+
+  <script type="module" src="/src/app/main.ts"></script>
+</body>
+</html>

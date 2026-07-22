@@ -1,0 +1,12 @@
+# dependencies / build
+node_modules/
+dist/
+
+# never commit documents — test PDFs are copyrighted material
+*.pdf
+*.docx
+
+# local noise
+.DS_Store
+*.local
+tests/golden/*.local.json

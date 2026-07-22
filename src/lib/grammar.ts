@@ -59,8 +59,11 @@ const MODS = String.raw`(?:\s?(?:a\.\s?F\.|n\.\s?F\.|analog|entsprechend))*`
 // Either an EU instrument pattern or an abbreviation-like token, optionally
 // with a second token for families like "SGB V", "G 10".
 const CODE_EU = String.raw`(?:VO|Verordnung|RL|Richtlinie)\s?\((?:EU|EG|EWG)\)\s?(?:Nr\.\s?)?\d{1,4}\/\d{2,4}|RL\s?\d{4}\/\d{1,4}\/(?:EU|EG|EWG)`
-// {0,29}: single-letter bases are legal because of two-token codes ("G 10").
-const CODE_TOKEN = String.raw`[A-ZÄÖÜ][A-Za-zÄÖÜäöüß0-9.\/-]{0,29}(?:\s(?:${ROMAN})(?![A-Za-zÄÖÜäöüß])|\s\d{1,2}(?!\d))?`
+// Two-token codes: a Roman second token for families like "SGB V"; a digit
+// second token only for 1-2 letter bases ("G 10") — otherwise stray page
+// numbers glue on ("… § 122 BGB 28 Lerneinheit …" in a TOC). Neither may
+// attach across a sentence boundary ("… BGB. 4. Trennungsprinzip").
+const CODE_TOKEN = String.raw`(?:[A-ZÄÖÜ]{1,2}\s\d{1,2}(?![.\d])|[A-ZÄÖÜ][A-Za-zÄÖÜäöüß0-9.\/-]{0,29}(?:(?<!\.)\s(?:${ROMAN})(?![A-Za-zÄÖÜäöüß]))?)`
 const CODE = String.raw`(?:${CODE_EU}|${CODE_TOKEN})`
 
 // One citation leg: sign + refs + modifiers + optional code + optional modifiers.
@@ -242,7 +245,8 @@ function parseLeg(leg: string, offset: number): RawCitation[] {
   let codeCandidate: string | undefined
   const cm = eat(CODE_RE, leg, pos)
   if (cm) {
-    codeCandidate = cm[1]!.replace(/\s+/g, ' ').trim()
+    // Trailing sentence punctuation is not part of the code ("… BGB. Auch …").
+    codeCandidate = cm[1]!.replace(/\s+/g, ' ').trim().replace(/[.,;:]+$/, '')
     pos = cm.index + cm[0].length
   }
   eatMods()

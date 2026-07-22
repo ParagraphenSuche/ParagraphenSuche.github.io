@@ -61,6 +61,12 @@ export interface TableRow {
   variants: string[]
   /** Sorted, deduplicated 1-based page numbers. */
   pages: number[]
+  /**
+   * Pages where this § is covered only implicitly by a range or ff. citation
+   * ("§§ 812–822" also covers § 815; "§ 123 ff." covers the following §§).
+   * Rendered with a * marker.
+   */
+  impliedPages: number[]
   /** True when the law code was never written out, only implicit. */
   implicitOnly: boolean
   modifiers: Modifier[]

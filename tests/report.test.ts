@@ -45,6 +45,41 @@ describe('groupCitations', () => {
   })
 })
 
+describe('implied pages from ranges and ff.', () => {
+  it('range covers separately cited § inside it', () => {
+    const { citations } = extractFromPages(['§ 815 BGB gilt.', '§§ 812–822 BGB regeln das.'], {
+      checkCode,
+    })
+    const rows = groupCitations(citations)
+    const r815 = rows.find((r) => r.number === '815')!
+    expect(r815.pages).toEqual([1])
+    expect(r815.impliedPages).toEqual([2])
+  })
+  it('f. covers exactly the next §', () => {
+    const { citations } = extractFromPages(['§ 823 f. BGB', '§ 824 BGB und § 826 BGB'], {
+      checkCode,
+    })
+    const rows = groupCitations(citations)
+    expect(rows.find((r) => r.number === '824')!.impliedPages).toEqual([1])
+    expect(rows.find((r) => r.number === '826')!.impliedPages).toEqual([])
+  })
+  it('ff. covers a bounded window', () => {
+    const { citations } = extractFromPages(['§ 104 ff. BGB', '§ 110 BGB', '§ 433 BGB'], {
+      checkCode,
+    })
+    const rows = groupCitations(citations)
+    expect(rows.find((r) => r.number === '110')!.impliedPages).toEqual([1])
+    expect(rows.find((r) => r.number === '433')!.impliedPages).toEqual([])
+  })
+  it('explicit page wins over implied on the same page', () => {
+    const { citations } = extractFromPages(['§ 815 BGB und §§ 812–822 BGB'], { checkCode })
+    const rows = groupCitations(citations)
+    const r815 = rows.find((r) => r.number === '815')!
+    expect(r815.pages).toEqual([1])
+    expect(r815.impliedPages).toEqual([])
+  })
+})
+
 describe('compareSectionNumber', () => {
   it('numeric-aware ordering', () => {
     expect(['823', '90', '306a', '306', '1004'].sort(compareSectionNumber)).toEqual([

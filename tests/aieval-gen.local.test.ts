@@ -1,5 +1,5 @@
-import { it } from 'vitest'
-import { readFileSync, writeFileSync } from 'node:fs'
+import { describe, it } from 'vitest'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import { extractPages } from '../src/lib/pdftext'
 import { extractFromPages } from '../src/lib/extractor'
@@ -17,6 +17,7 @@ function mulberry32(seed: number) {
   }
 }
 
+describe.skipIf(!existsSync('../FinalTestBook.pdf'))('aieval', () => {
 it('generate eval cases', async () => {
   const registry = new LawRegistry(await fetchTocSlugs())
   const books: Array<[string, string, number]> = [
@@ -50,3 +51,4 @@ it('generate eval cases', async () => {
   writeFileSync('/tmp/ai-eval-unlabeled.json', JSON.stringify(out, null, 1))
   console.log('cases:', out.length)
 }, 600_000)
+})

@@ -21,13 +21,30 @@ function el<K extends keyof HTMLElementTagNameMap>(
   return node
 }
 
-function pagesCell(row: TableRow): HTMLTableCellElement {
+export type PageClickHandler = (row: TableRow, page: number) => void
+
+function pagesCell(row: TableRow, onPageClick?: PageClickHandler): HTMLTableCellElement {
   const td = el('td')
   const all = [
     ...row.pages.map((p) => ({ p, implied: false })),
     ...row.impliedPages.map((p) => ({ p, implied: true })),
   ].sort((a, b) => a.p - b.p)
-  td.textContent = all.map((e) => (e.implied ? `${e.p}*` : `${e.p}`)).join(', ')
+  all.forEach((e, i) => {
+    if (i > 0) td.append(', ')
+    const label = e.implied ? `${e.p}*` : `${e.p}`
+    if (onPageClick) {
+      const a = el('a', label)
+      a.href = '#'
+      a.title = `Seite ${e.p} mit markierter Fundstelle anzeigen`
+      a.addEventListener('click', (ev) => {
+        ev.preventDefault()
+        onPageClick(row, e.p)
+      })
+      td.append(a)
+    } else {
+      td.append(label)
+    }
+  })
   return td
 }
 
@@ -36,6 +53,7 @@ export function renderResults(
   rows: TableRow[],
   warnings: AnalysisWarning[],
   warningsContainer: HTMLElement,
+  onPageClick?: PageClickHandler,
 ): void {
   container.replaceChildren()
   warningsContainer.replaceChildren()
@@ -66,7 +84,7 @@ export function renderResults(
     tr.append(law)
     tr.append(el('td', `${row.kind} ${row.number}`))
     tr.append(el('td', row.variants.join('; ')))
-    tr.append(pagesCell(row))
+    tr.append(pagesCell(row, onPageClick))
     const status = el('td')
     if (row.staleness) {
       status.append(el('span', statusLabel(row), `badge ${BADGE_CLASS[row.staleness.status]}`))

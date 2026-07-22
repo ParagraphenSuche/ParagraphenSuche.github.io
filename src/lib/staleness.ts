@@ -199,7 +199,9 @@ export async function applyStaleness(
       lawLastAmended: amended,
       note:
         law.snapshotXml === 'unavailable'
-          ? `${lawNote} (Norm-Vergleich nicht verfügbar${rateLimited ? ' – Abruflimit' : year < 2019 ? ' – Archiv reicht nicht so weit zurück' : ''}.)`
+          ? rateLimited
+            ? `${lawNote} (Abruflimit erreicht – Norm-Vergleich später erneut versuchen.)`
+            : lawNote
           : `${lawNote} (${row.kind} ${row.number} dort nicht auffindbar – nur Gesetzesebene geprüft.)`,
     }
   }

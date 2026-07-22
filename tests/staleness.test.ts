@@ -76,6 +76,7 @@ function mkRow(number: string, law = 'TG'): TableRow {
     impliedPages: [],
     implicitOnly: false,
     modifiers: [],
+    pageSources: {},
   }
 }
 

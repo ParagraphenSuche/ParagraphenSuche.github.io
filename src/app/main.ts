@@ -2,15 +2,19 @@ import * as pdfjs from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import { extractPages, looksScanned } from '../lib/pdftext'
 import { extractFromPages } from '../lib/extractor'
-import { groupCitations } from '../lib/report'
+import { groupCitations, sortRowsByStaleness } from '../lib/report'
 import { LawRegistry, fallbackRegistry } from '../lib/registry'
 import { applyStaleness } from '../lib/staleness'
 import { fetchTocSlugs } from '../lib/sources'
 import type { AnalysisWarning } from '../lib/models'
 import { renderResults } from './table'
 import { renderDownloadButtons } from './download'
+import { openPagePreview } from './viewer'
+import type { PDFDocumentProxy } from 'pdfjs-dist'
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl
+
+let currentDoc: PDFDocumentProxy | null = null
 
 const form = document.getElementById('analyze-form') as HTMLFormElement
 const fileInput = document.getElementById('pdf-input') as HTMLInputElement
@@ -53,7 +57,9 @@ async function analyze(): Promise<void> {
 
     setProgress('Lese PDF …')
     const data = new Uint8Array(await file.arrayBuffer())
+    currentDoc?.destroy().catch(() => {})
     const doc = await pdfjs.getDocument({ data }).promise
+    currentDoc = doc
     const pages = await extractPages(doc, (page, total) =>
       setProgress(`Lese Seite ${page}/${total} …`),
     )
@@ -79,10 +85,19 @@ async function analyze(): Promise<void> {
     const year = yearInput.value ? parseInt(yearInput.value, 10) : undefined
     if (year !== undefined && !Number.isNaN(year)) {
       await applyStaleness(rows, registry, year, setProgress)
+      sortRowsByStaleness(rows)
     }
 
     setProgress(null)
-    renderResults(resultsEl, rows, warnings, warningsEl)
+    renderResults(resultsEl, rows, warnings, warningsEl, (row, page) => {
+      if (!currentDoc) return
+      void openPagePreview(
+        currentDoc,
+        page,
+        row.pageSources[page] ?? [`${row.kind} ${row.number}`],
+        `${row.kind} ${row.number} ${row.law}`,
+      )
+    })
     renderDownloadButtons(resultsEl, rows, file.name)
   } catch (err) {
     setProgress(`Fehler: ${err instanceof Error ? err.message : String(err)}`)

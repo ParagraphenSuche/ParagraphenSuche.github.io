@@ -124,6 +124,62 @@ th {
   font-weight: 600;
 }
 
+#viewer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+#viewer-box {
+  background: #fff;
+  border-radius: 8px;
+  max-height: 92vh;
+  max-width: 94vw;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+}
+
+#viewer-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+#viewer-close {
+  background: none;
+  border: none;
+  color: #444;
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.3rem;
+}
+
+#viewer-body {
+  overflow: auto;
+  padding: 0.75rem;
+}
+
+#viewer-canvas-wrap {
+  position: relative;
+}
+
+.viewer-highlight {
+  position: absolute;
+  background: rgba(255, 213, 0, 0.42);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
 footer {
   margin-top: 3rem;
   font-size: 0.85rem;

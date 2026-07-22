@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { extractFromPages, type CodeVerdict } from '../src/lib/extractor'
-import { groupCitations, toCsv, toMarkdown, compareSectionNumber } from '../src/lib/report'
+import {
+  groupCitations,
+  toCsv,
+  toMarkdown,
+  compareSectionNumber,
+  sortRowsByStaleness,
+} from '../src/lib/report'
 
 const checkCode = (code: string): CodeVerdict =>
   ['BGB', 'StGB', 'GG'].includes(code) ? 'known' : 'unknown'
@@ -89,6 +95,26 @@ describe('compareSectionNumber', () => {
       '823',
       '1004',
     ])
+  })
+})
+
+describe('sortRowsByStaleness', () => {
+  it('changed first, then ambiguous, then current', () => {
+    const { citations } = extractFromPages(['§ 1 BGB, § 2 BGB, § 3 BGB, § 4 BGB, § 5 BGB'], {
+      checkCode,
+    })
+    const rows = groupCitations(citations)
+    const set = (n: string, status: string) => {
+      const r = rows.find((x) => x.number === n)!
+      r.staleness = { status: status as never, note: '' }
+    }
+    set('1', 'UNCHANGED')
+    set('2', 'PARA_CHANGED')
+    set('3', 'UNKNOWN')
+    set('4', 'LAW_CHANGED')
+    set('5', 'PARA_UNCHANGED')
+    sortRowsByStaleness(rows)
+    expect(rows.map((r) => r.number)).toEqual(['2', '4', '3', '1', '5'])
   })
 })
 

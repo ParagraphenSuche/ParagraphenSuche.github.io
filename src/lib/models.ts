@@ -71,6 +71,12 @@ export interface TableRow {
   implicitOnly: boolean
   modifiers: Modifier[]
   staleness?: StalenessResult
+  /**
+   * Per page: the raw citation snippets that put this page in the row
+   * (for implied pages, the covering range/ff. citation). Drives the
+   * page-preview highlighting.
+   */
+  pageSources: Record<number, string[]>
 }
 
 export interface AnalysisWarning {

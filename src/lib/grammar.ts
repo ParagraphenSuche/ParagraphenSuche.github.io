@@ -63,7 +63,7 @@ const CODE_EU = String.raw`(?:VO|Verordnung|RL|Richtlinie)\s?\((?:EU|EG|EWG)\)\s
 // second token only for 1-2 letter bases ("G 10") — otherwise stray page
 // numbers glue on ("… § 122 BGB 28 Lerneinheit …" in a TOC). Neither may
 // attach across a sentence boundary ("… BGB. 4. Trennungsprinzip").
-const CODE_TOKEN = String.raw`(?:[A-ZÄÖÜ]{1,2}\s\d{1,2}(?![.\d])|[A-ZÄÖÜ][A-Za-zÄÖÜäöüß0-9.\/-]{0,29}(?:(?<!\.)\s(?:${ROMAN})(?![A-Za-zÄÖÜäöüß]))?)`
+const CODE_TOKEN = String.raw`(?:[A-ZÄÖÜ]{1,2}\s\d{1,2}(?![.\d])|[A-ZÄÖÜ][A-Za-zÄÖÜäöüß0-9.\/-]{0,29}(?:(?<!\.)\s(?:${ROMAN})(?![A-Za-zÄÖÜäöüß.]))?)`
 const CODE = String.raw`(?:${CODE_EU}|${CODE_TOKEN})`
 
 // One citation leg: sign + refs + modifiers + optional code + optional modifiers.

@@ -66,6 +66,12 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
           candidate = undefined
           if (!modifiers.includes('Rn-context')) modifiers.push('Rn-context')
         }
+
+        // Stray Roman numerals (headings, unconsumed Absatz digits) are
+        // never law codes: "… § 142 BGB … I. Einführung".
+        if (candidate && /^[IVX]+(?:\s\d+)?$/.test(candidate)) {
+          candidate = undefined
+        }
         if (rnContext && !modifiers.includes('Rn-context')) modifiers.push('Rn-context')
 
         if (candidate) {

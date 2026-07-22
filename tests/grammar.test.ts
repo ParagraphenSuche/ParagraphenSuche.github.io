@@ -160,6 +160,20 @@ describe('Rn. commentary context', () => {
   })
 })
 
+describe('heading junk after citations', () => {
+  it('Roman heading does not glue onto code', () =>
+    expect(run('nach § 142 BGB IV. Die Anfechtung')).toEqual(['§ 142 BGB']))
+  it('numbered heading does not glue onto code', () =>
+    expect(run('Schadensersatz nach § 122 BGB 28 Lerneinheit 4')).toEqual(['§ 122 BGB']))
+  it('stray Roman numeral is not a code', () => {
+    const { citations } = extractFromPages(['siehe § 812 a.F. I 1 der Gliederung'], {
+      checkCode,
+    })
+    expect(citations).toHaveLength(1)
+    expect(citations[0]!.lawCode).toBeUndefined()
+  })
+})
+
 describe('footnote-digit glue', () => {
   it('BGB1 resolves to BGB', () => expect(run('§ 823 BGB1 und weiter')).toEqual(['§ 823 BGB']))
 })

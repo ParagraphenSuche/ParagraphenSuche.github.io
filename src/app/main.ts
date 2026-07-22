@@ -4,6 +4,7 @@ import { extractPages, looksScanned } from '../lib/pdftext'
 import { extractFromPages } from '../lib/extractor'
 import { groupCitations } from '../lib/report'
 import { LawRegistry, fallbackRegistry } from '../lib/registry'
+import { applyStaleness } from '../lib/staleness'
 import { fetchTocSlugs } from '../lib/sources'
 import type { AnalysisWarning } from '../lib/models'
 import { renderResults } from './table'
@@ -75,13 +76,9 @@ async function analyze(): Promise<void> {
 
     const rows = groupCitations(result.citations)
 
-    // Staleness check arrives with the next milestone; year input is
-    // validated here so the form contract is already stable.
     const year = yearInput.value ? parseInt(yearInput.value, 10) : undefined
-    if (year !== undefined) {
-      warnings.push({
-        message: `Die Änderungsprüfung (Erscheinungsjahr ${year}) ist noch in Arbeit und wird bald ergänzt.`,
-      })
+    if (year !== undefined && !Number.isNaN(year)) {
+      await applyStaleness(rows, registry, year, setProgress)
     }
 
     setProgress(null)

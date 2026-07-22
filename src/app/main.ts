@@ -132,6 +132,7 @@ function renderAiSection(): void {
   const { uneindeutig } = splitRows(state.rows)
   if (uneindeutig.length === 0) return
 
+  const builtinKey = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) || ''
   const box = document.createElement('div')
   box.id = 'ai-section'
   box.innerHTML = `
@@ -139,7 +140,7 @@ function renderAiSection(): void {
     <p class="hint-text">Klassifiziert die ${uneindeutig.length} uneindeutigen Fälle mit Gemini
     (${state.year !== undefined ? 'inkl. anschließender Änderungsprüfung' : 'ohne Änderungsprüfung'}).
     Es werden nur kurze Textausschnitte übertragen, nie das PDF.</p>
-    <div class="field">
+    <div class="field" ${builtinKey ? 'hidden' : ''}>
       <label for="gemini-key">Gemini-API-Key <span class="hint">(<a href="https://aistudio.google.com/apikey" rel="noopener" target="_blank">kostenlos erstellen</a>; wird nur lokal gespeichert)</span></label>
       <input type="password" id="gemini-key" autocomplete="off" />
     </div>
@@ -159,7 +160,7 @@ function renderAiSection(): void {
   }
 
   const keyInput = box.querySelector('#gemini-key') as HTMLInputElement
-  keyInput.value = localStorage.getItem('ps:gemini-key') ?? ''
+  keyInput.value = builtinKey || (localStorage.getItem('ps:gemini-key') ?? '')
   const runBtn = box.querySelector('#ai-run') as HTMLButtonElement
   const cancelBtn = box.querySelector('#ai-cancel') as HTMLButtonElement
   const prog = box.querySelector('#ai-progress') as HTMLProgressElement
@@ -171,7 +172,7 @@ function renderAiSection(): void {
       status.textContent = 'Bitte zuerst einen API-Key eintragen.'
       return
     }
-    localStorage.setItem('ps:gemini-key', apiKey)
+    if (!builtinKey) localStorage.setItem('ps:gemini-key', apiKey)
     void runAi(apiKey, runBtn, cancelBtn, prog, status)
   })
 }

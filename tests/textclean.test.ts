@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanText, stripRepeatedEdges } from '../src/lib/textclean'
+import { cleanText, dropDuplicatedLayer, stripRepeatedEdges } from '../src/lib/textclean'
 
 describe('stripRepeatedEdges', () => {
   it('removes repeated footers and headers', () => {
@@ -40,5 +40,16 @@ describe('cleanText', () => {
   })
   it('converts superscript footnote digits (NFKC)', () => {
     expect(cleanText('BGB¹')).toBe('BGB1')
+  })
+})
+
+describe('dropDuplicatedLayer', () => {
+  it('cuts a duplicated page body', () => {
+    const body = 'Rechtslage eine konkretere Fragestellung, wie z. B. Kann A von B Zahlung verlangen? Weiterer Text folgt hier ausführlich.'
+    expect(dropDuplicatedLayer(body + '\n' + body)).toBe(body + '\n')
+  })
+  it('keeps normal pages', () => {
+    const body = 'Ganz normaler Seitentext ohne jede Wiederholung, der lang genug ist um die Probe zu füllen und dann endet.'
+    expect(dropDuplicatedLayer(body)).toBe(body)
   })
 })

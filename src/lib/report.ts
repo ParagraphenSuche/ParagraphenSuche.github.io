@@ -4,6 +4,7 @@
  */
 import type { Citation, Modifier, TableRow } from './models'
 import { canonical } from './models'
+import { normalizeCodeKey } from './extractor'
 
 /**
  * How far an open-ended "ff." citation is assumed to reach beyond its start
@@ -37,13 +38,17 @@ export function groupCitations(citations: Citation[]): TableRow[] {
 
   for (const c of citations) {
     const law = c.lawCode ?? '[?]'
+    // Key by the NORMALIZED code so casing/punctuation variants of one law
+    // merge ("ProdHaftG"/"ProdhaftG"); display keeps the shortest variant.
     // ff.-citations and ranges get their own rows (they need different
     // verification and live in the self-review table when unbounded/wide).
+    const lawKey = c.lawCode ? normalizeCodeKey(c.lawCode) : '[?]'
     const key =
-      `${law} ${c.ref.kind} ${c.ref.number}` +
+      `${lawKey} ${c.ref.kind} ${c.ref.number}` +
       (c.ref.numberEnd ? `-${c.ref.numberEnd}` : '') +
       (c.ref.ff === 'ff.' ? ' ff.' : '')
     let row = rows.get(key)
+    if (row && law !== '[?]' && law.length < row.law.length) row.law = law
     if (!row) {
       row = {
         law,
@@ -76,9 +81,10 @@ export function groupCitations(citations: Citation[]): TableRow[] {
   for (const c of citations) {
     const span = coveredSpan(c)
     if (!span) continue
-    const law = c.lawCode ?? '[?]'
+    const lawKey = c.lawCode ? normalizeCodeKey(c.lawCode) : '[?]'
     for (const row of rows.values()) {
-      if (row.law !== law || row.kind !== c.ref.kind) continue
+      const rowKey = row.law === '[?]' ? '[?]' : normalizeCodeKey(row.law)
+      if (rowKey !== lawKey || row.kind !== c.ref.kind) continue
       if (
         row.number === c.ref.number &&
         row.numberEnd === c.ref.numberEnd &&

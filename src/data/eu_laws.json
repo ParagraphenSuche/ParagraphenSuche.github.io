@@ -24,6 +24,11 @@
     { "code": "ProspektVO", "name": "Verordnung (EU) 2017/1129", "aliases": ["EU-Prospekt-Verordnung", "VO (EU) 2017/1129", "VO (EU) Nr. 2017/1129"] },
     { "code": "PRIIP-VO", "name": "Verordnung (EU) Nr. 1286/2014", "aliases": ["PRIIPVO", "PRIIP-Verordnung"] },
     { "code": "Taxonomie-VO", "name": "Verordnung (EU) 2020/852", "aliases": ["TaxonomieVO", "VO (EU) 2020/852", "VO (EU) Nr. 2020/852"] },
-    { "code": "SDÜ", "name": "Schengener Durchführungsübereinkommen", "aliases": ["SchengenerDFÜ", "SchengenerDVÜ"] }
+    { "code": "SDÜ", "name": "Schengener Durchführungsübereinkommen", "aliases": ["SchengenerDFÜ", "SchengenerDVÜ"] },
+    { "code": "Warenkauf-RL", "name": "Richtlinie (EU) 2019/771", "aliases": ["WKRL", "RL (EU) 2019/771"] },
+    { "code": "Verbraucherrechte-RL", "name": "Richtlinie 2011/83/EU", "aliases": ["VRRL", "RL 2011/83/EU"] },
+    { "code": "Reparatur-RL", "name": "Richtlinie (EU) 2024/1799", "aliases": ["RL (EU) 2024/1799"] },
+    { "code": "GPSR", "name": "Produktsicherheitsverordnung (EU) 2023/988", "aliases": ["VO (EU) 2023/988"] },
+    { "code": "GEKR-VO", "name": "Vorschlag Gemeinsames Europäisches Kaufrecht", "aliases": ["GEKR"] }
   ]
 }

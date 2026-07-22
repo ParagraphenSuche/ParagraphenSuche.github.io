@@ -5,7 +5,7 @@ import { canonical } from '../src/lib/models'
 const KNOWN = new Set(
   [
     'BGB', 'StGB', 'ZPO', 'StPO', 'GG', 'HGB', 'VVG', 'GmbHG', 'AktG', 'EStG', 'InsO',
-    'VwGO', 'VwVfG', 'UWG', 'UrhG', 'MarkenG', 'BImSchG', 'SGB V', 'SGB II', 'G 10', 'EGBGB',
+    'VwGO', 'VwVfG', 'UWG', 'UrhG', 'MarkenG', 'BImSchG', 'SGB V', 'SGB II', 'G 10', 'EGBGB', 'GVG',
     'DSGVO', 'AEUV', 'EUV', 'GRCh', 'EMRK', 'WEG', 'StVG', 'ProdHaftG', 'BDSG',
   ].map((c) => c.toLowerCase().replace(/[\s.\-]/g, '')),
 )
@@ -184,6 +184,31 @@ describe('real-world patterns from LongTest', () => {
     expect(run('nach § 985 und § 1004 BGB')).toEqual(['§ 985 BGB', '§ 1004 BGB']))
 })
 
+describe('FinalTestBook patterns', () => {
+  it('level-aware detail lists keep deeper keywords', () =>
+    expect(run('nach § 23b Abs. 1, 2 und 3 S. 3 und 4 GVG')).toEqual([
+      '§ 23b Abs. 1, 2 und 3 S. 3 und 4 GVG',
+    ]))
+  it('singular enumeration with validated code keeps extras', () => {
+    expect(run('nach § 133, 157 BGB auszulegen')).toEqual(['§ 133 BGB', '§ 157 BGB'])
+    expect(run('gem. § 263, 264, 267 ZPO')).toEqual(['§ 263 ZPO', '§ 264 ZPO', '§ 267 ZPO'])
+    expect(run('aus § 311 Abs. 2, 241 Abs. 2 BGB')).toEqual([
+      '§ 311 Abs. 2 BGB',
+      '§ 241 Abs. 2 BGB',
+    ])
+  })
+  it('singular enumeration without code drops the prose number', () => {
+    const { citations } = extractFromPages(['nach § 823, 1000 Euro Schadensersatz'], { checkCode })
+    expect(citations.map((c) => c.ref.number)).toEqual(['823'])
+  })
+  it('written-out law names are kept as candidates', () => {
+    const { citations } = extractFromPages(['nach § 84 Arzneimittelgesetz haftet'], {
+      checkCode: (c) => (c === 'Arzneimittelgesetz' ? 'known' : 'unknown'),
+    })
+    expect(citations[0]!.lawCode).toBe('Arzneimittelgesetz')
+  })
+})
+
 describe('parentheticals inside citations', () => {
   it('(!) between details and code', () =>
     expect(run('wird, § 311b I 2 (!) BGB.')).toEqual(['§ 311b Abs. 1 S. 2 BGB']))
@@ -239,4 +264,29 @@ describe('page attribution', () => {
       ['2', 3],
     ])
   })
+})
+
+describe('three-digit continuations are new refs', () => {
+  it('Nr. list does not swallow the next §', () =>
+    expect(run('aus §§ 437 Nr. 1, 439 BGB')).toEqual(['§ 437 Nr. 1 BGB', '§ 439 BGB']))
+  it('S. list does not swallow the next §', () =>
+    expect(run('nach §§ 677, 683 S. 1, 670 BGB')).toEqual([
+      '§ 677 BGB',
+      '§ 683 S. 1 BGB',
+      '§ 670 BGB',
+    ]))
+  it('tight §§535ff is an ff. citation', () =>
+    expect(run('siehe §§535ff BGB')).toEqual(['§ 535 ff. BGB']))
+  it('tight §§535ff. with dot keeps its code', () =>
+    expect(run('Vorschriften (§§535ff. BGB) Anwendung')).toEqual(['§ 535 ff. BGB']))
+})
+
+describe('sign-less iVm legs', () => {
+  it('inherits the § kind', () =>
+    expect(run('(§§ 204 Abs. 1 Nr. 3 BGB i. V. m. 693 Abs. 2 ZPO)')).toEqual([
+      '§ 204 Abs. 1 Nr. 3 BGB',
+      '§ 693 Abs. 2 ZPO',
+    ]))
+  it('iVm followed by prose still ends the chain', () =>
+    expect(run('§ 812 BGB i.V.m. dem Vertrag')).toEqual(['§ 812 BGB']))
 })

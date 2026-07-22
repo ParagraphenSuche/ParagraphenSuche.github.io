@@ -1,4 +1,18 @@
 /**
+ * Some PDFs carry the page text twice (a duplicated tagged-content /
+ * accessibility layer) — every citation would count double. When the page's
+ * opening text reappears later, everything from the reappearance on is the
+ * duplicate layer and gets dropped.
+ */
+export function dropDuplicatedLayer(raw: string): string {
+  const probe = raw.trimStart().slice(0, 80)
+  if (probe.length < 40) return raw
+  const idx = raw.indexOf(probe, 100)
+  if (idx > raw.length / 3) return raw.slice(0, idx)
+  return raw
+}
+
+/**
  * Removes repeated headers/footers ("hofmann", "Seite 43", running titles)
  * from the start/end of each page so that citations straddling a page
  * break can be matched across the join. A line qualifies when its

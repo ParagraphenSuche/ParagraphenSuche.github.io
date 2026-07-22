@@ -4,7 +4,7 @@
  * staleness feature; tests and the offline path use a static set).
  */
 import type { AnalysisWarning, Citation, Modifier } from './models'
-import { cleanText, stripRepeatedEdges } from './textclean'
+import { cleanText, dropDuplicatedLayer, stripRepeatedEdges } from './textclean'
 import { findCitations } from './grammar'
 import aliasData from '../data/aliases.json'
 
@@ -47,7 +47,7 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
   // Strip repeated headers/footers, then join all pages into one text so
   // citations straddling a page break ("… nach § 123 <break> BGB …") still
   // match; page attribution via the citation's start offset.
-  const cleaned = stripRepeatedEdges(pages).map(cleanText)
+  const cleaned = stripRepeatedEdges(pages.map(dropDuplicatedLayer)).map(cleanText)
   const pageStarts: number[] = []
   let text = ''
   for (const p of cleaned) {
@@ -86,9 +86,9 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
           if (!modifiers.includes('Rn-context')) modifiers.push('Rn-context')
         }
 
-        // Stray Roman numerals (headings, unconsumed Absatz digits) are
-        // never law codes: "… § 142 BGB … I. Einführung".
-        if (candidate && /^[IVX]+(?:\s\d+)?$/.test(candidate)) {
+        // Stray Roman numerals (headings, unconsumed Absatz digits) and
+        // single-letter outline labels ("§ 985 D.") are never law codes.
+        if (candidate && (/^[IVX]+(?:\s\d+)?$/.test(candidate) || /^[A-ZÄÖÜ]$/.test(candidate))) {
           candidate = undefined
         }
         if (rnContext && !modifiers.includes('Rn-context')) modifiers.push('Rn-context')
@@ -100,7 +100,7 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
           // Retry without the trailing digit run — but not for families that
           // legitimately end in digits (SGB V handled as two tokens; G 10; EU refs).
           if (verdict === 'unknown' && /\d$/.test(candidate) && !/[\s/]/.test(candidate)) {
-            const stripped = candidate.replace(/\d+$/, '')
+            const stripped = candidate.replace(/\d+$/, '').replace(/[.,;:]+$/, '')
             if (stripped.length >= 2 && opts.checkCode(stripped) === 'known') {
               candidate = stripped
               verdict = 'known'
@@ -113,8 +113,12 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
             lawCode = candidate
           } else {
             // Unknown candidate: a plain capitalized German word is prose,
-            // not a code ("… § 3 Absatz 1 Der Vertrag …").
-            if (/^[A-ZÄÖÜ][a-zäöüß]+$/.test(candidate)) {
+            // not a code ("… § 3 Absatz 1 Der Vertrag …") — unless it looks
+            // like a written-out law name ("Arzneimittelgesetz").
+            if (
+              /^[A-ZÄÖÜ][a-zäöüß]+$/.test(candidate) &&
+              !/(?:gesetz|gesetzbuch|verordnung|ordnung)$/i.test(candidate)
+            ) {
               candidate = undefined
             } else {
               lawCode = candidate
@@ -122,6 +126,11 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
             }
           }
         }
+
+        // Singular-sign enumeration extras ("§ 133, 157 BGB") are only
+        // real citations when the leg's code validated — otherwise the
+        // trailing number is likely prose ("nach § 823, 1000 Euro …").
+        if (rc.enumExtra && !lawCode) continue
 
         if (!lawCode && opts.implicitCode) {
           lawCode = opts.implicitCode

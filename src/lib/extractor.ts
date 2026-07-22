@@ -4,7 +4,8 @@
  * staleness feature; tests and the offline path use a static set).
  */
 import type { AnalysisWarning, Citation, Modifier } from './models'
-import { cleanText, dropDuplicatedLayer, fixShiftedEncoding, stripRepeatedEdges } from './textclean'
+import { cleanText, dropBareNumberLines, dropDuplicatedLayer, dropRunningHeader, fixShiftedEncoding, stripRepeatedEdges } from './textclean'
+import { splitBodyAndFootnotes } from './pdftext'
 import { findCitations } from './grammar'
 import aliasData from '../data/aliases.json'
 import kommData from '../data/kommentare.json'
@@ -98,27 +99,39 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
   const warnings: AnalysisWarning[] = []
   const unresolved = new Map<string, number>()
 
-  // Strip repeated headers/footers, then join all pages into one text so
-  // citations straddling a page break ("… nach § 123 <break> BGB …") still
-  // match; page attribution via the citation's start offset.
-  const cleaned = stripRepeatedEdges(pages.map(fixShiftedEncoding).map(dropDuplicatedLayer)).map(
-    cleanText,
-  )
-  const pageStarts: number[] = []
+  // Separate body text from footnote blocks, strip repeated headers/
+  // footers, then join ALL page bodies first and all footnote blocks after.
+  // Body sentences interrupted by footnotes rejoin across page breaks
+  // ("… aus § 823 <Fußnoten|Seitenwechsel> BGB, sofern …"); page
+  // attribution works via segment start offsets for both streams.
+  const split = pages.map(fixShiftedEncoding).map(dropDuplicatedLayer).map(splitBodyAndFootnotes)
+  const bodies = stripRepeatedEdges(
+    split.map((x) => dropBareNumberLines(dropRunningHeader(x.body))),
+  ).map(cleanText)
+  const smalls = split.map((x) => cleanText(x.small))
+
+  const segStarts: Array<{ start: number; page: number }> = []
   let text = ''
-  for (const p of cleaned) {
-    pageStarts.push(text.length)
-    text += p + ' '
+  for (let i = 0; i < bodies.length; i++) {
+    segStarts.push({ start: text.length, page: i + 1 })
+    text += bodies[i]! + ' '
+  }
+  // Sentence guard so the last body cannot chain into the first footnote.
+  text += '.\n'
+  for (let i = 0; i < smalls.length; i++) {
+    if (!smalls[i]) continue
+    segStarts.push({ start: text.length, page: i + 1 })
+    text += smalls[i]! + ' '
   }
   const pageOf = (index: number): number => {
     let lo = 0
-    let hi = pageStarts.length - 1
+    let hi = segStarts.length - 1
     while (lo < hi) {
       const mid = (lo + hi + 1) >> 1
-      if (pageStarts[mid]! <= index) lo = mid
+      if (segStarts[mid]!.start <= index) lo = mid
       else hi = mid - 1
     }
-    return lo + 1
+    return segStarts[lo]!.page
   }
 
   {

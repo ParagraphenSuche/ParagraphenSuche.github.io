@@ -51,6 +51,41 @@ export function dropDuplicatedLayer(raw: string): string {
 }
 
 /**
+ * Lines consisting solely of a small number are layout artifacts (margin
+ * Randnummern, bare page numbers) — never prose. They must go, or a body
+ * sentence ending right before them cannot rejoin across the page break.
+ */
+export function dropBareNumberLines(raw: string): string {
+  return raw
+    .split('\n')
+    .filter((l) => !/^\d{1,4}$/.test(l.trim()))
+    .join('\n')
+}
+
+/**
+ * Drops a running-header first line ("II. Haftung des Arbeitnehmers 343" /
+ * "342 2 Kapitel …"): short, carries a page number at either end, no §, no
+ * closing period — and only when the SECOND line does not look the same
+ * (protects tables of contents).
+ */
+export function dropRunningHeader(raw: string): string {
+  const nl = raw.indexOf('\n')
+  if (nl < 1) return raw
+  const first = raw.slice(0, nl).trim()
+  const nl2 = raw.indexOf('\n', nl + 1)
+  const second = raw.slice(nl + 1, nl2 === -1 ? undefined : nl2).trim()
+  const headerLike = (line: string): boolean =>
+    line.length > 0 &&
+    line.length <= 80 &&
+    !line.includes('§') &&
+    !/[.!?]$/.test(line) &&
+    /[A-Za-zÄÖÜäöüß]/.test(line) &&
+    (/^\d{1,4}\s+\S/.test(line) || /\s\d{1,4}$/.test(line))
+  if (headerLike(first) && !headerLike(second)) return raw.slice(nl + 1)
+  return raw
+}
+
+/**
  * Removes repeated headers/footers ("hofmann", "Seite 43", running titles)
  * from the start/end of each page so that citations straddling a page
  * break can be matched across the join. A line qualifies when its

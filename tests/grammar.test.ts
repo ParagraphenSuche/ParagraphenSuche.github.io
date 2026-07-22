@@ -419,3 +419,17 @@ describe('commentary-brand law inference', () => {
     expect(citations[0]!.lawCode).toBeUndefined()
   })
 })
+
+describe('cross-page body flow', () => {
+  it('code joins across footnotes, margin numbers and page break', () => {
+    // Body of p1 ends mid-citation; footnotes + margin numbers intervene in
+    // the raw stream; continuation starts p2 after a running header.
+    const p1 = 'Der Anspruch folgt aus § 823\n56\n57'
+    const p2 = 'II. Haftung des Arbeitnehmers 343\nBGB, sofern nichts anderes gilt.'
+    const filler = ['Erste Seite Text hier.', 'Zweite Seite Text hier.']
+    const { citations } = extractFromPages([...filler, p1, p2], { checkCode })
+    const c = citations.find((x) => x.ref.number === '823')!
+    expect(c.lawCode).toBe('BGB')
+    expect(c.page).toBe(3)
+  })
+})

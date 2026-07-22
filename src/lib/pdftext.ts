@@ -7,6 +7,8 @@
 interface TextItemLike {
   str: string
   hasEOL?: boolean
+  height?: number
+  transform?: number[]
 }
 
 interface TextContentLike {
@@ -34,6 +36,65 @@ export function itemsToText(items: unknown[]): string {
 }
 
 /**
+ * Like itemsToText, but moves SMALL-PRINT lines (footnotes, margin numbers —
+ * font size well below the page's body size) to the END of the page. Body
+ * text interrupted by a footnote block then rejoins across the page break:
+ * "… aus § 823 <Fußnoten> || <Folgeseite> BGB, sofern …".
+ */
+export function itemsToTextBodyFirst(items: unknown[]): string {
+  const lines: Array<{ text: string; size: number }> = []
+  let cur = ''
+  let curSize = 0
+  for (const it of items) {
+    const item = it as TextItemLike
+    if (typeof item.str === 'string') {
+      cur += item.str
+      const h =
+        item.height ??
+        (item.transform ? Math.hypot(item.transform[2] ?? 0, item.transform[3] ?? 0) : 0)
+      if (item.str.trim().length > 0) curSize = Math.max(curSize, h)
+    }
+    if (item.hasEOL) {
+      lines.push({ text: cur, size: curSize })
+      cur = ''
+      curSize = 0
+    }
+  }
+  if (cur) lines.push({ text: cur, size: curSize })
+
+  // Body font size: length-weighted median over sized lines.
+  const weighted: number[] = []
+  for (const l of lines) {
+    if (l.size > 0) for (let i = 0; i < l.text.length; i += 20) weighted.push(l.size)
+  }
+  if (weighted.length === 0) return lines.map((l) => l.text).join('\n')
+  weighted.sort((a, b) => a - b)
+  const body = weighted[weighted.length >> 1]!
+
+  const main: string[] = []
+  const small: string[] = []
+  for (const l of lines) {
+    if (l.size > 0 && l.size < body * 0.93) small.push(l.text)
+    else main.push(l.text)
+  }
+  if (small.length === 0) return main.join('\n')
+  return main.join('\n') + FOOTNOTE_MARK + small.join('\n')
+}
+
+/**
+ * Separates a page's body text from its small-print (footnote) block.
+ * The extractor concatenates all bodies first so sentences interrupted by
+ * a footnote apparatus rejoin across the page break.
+ */
+export const FOOTNOTE_MARK = '\n\u2063FN\u2063\n'
+
+export function splitBodyAndFootnotes(raw: string): { body: string; small: string } {
+  const idx = raw.indexOf(FOOTNOTE_MARK)
+  if (idx === -1) return { body: raw, small: '' }
+  return { body: raw.slice(0, idx), small: raw.slice(idx + FOOTNOTE_MARK.length) }
+}
+
+/**
  * Extract raw text of every page (1-based order).
  * Returns raw text — grammar callers run cleanText() per page.
  */
@@ -45,7 +106,7 @@ export async function extractPages(
   for (let n = 1; n <= doc.numPages; n++) {
     const page = await doc.getPage(n)
     const content = await page.getTextContent()
-    pages.push(itemsToText(content.items))
+    pages.push(itemsToTextBodyFirst(content.items))
     onProgress?.(n, doc.numPages)
   }
   return pages

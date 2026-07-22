@@ -19,7 +19,6 @@ let currentDoc: PDFDocumentProxy | null = null
 const form = document.getElementById('analyze-form') as HTMLFormElement
 const fileInput = document.getElementById('pdf-input') as HTMLInputElement
 const yearInput = document.getElementById('year-input') as HTMLInputElement
-const implicitInput = document.getElementById('implicit-input') as HTMLInputElement
 const dropRnInput = document.getElementById('drop-rn-input') as HTMLInputElement
 const button = document.getElementById('analyze-button') as HTMLButtonElement
 const progress = document.getElementById('progress')!
@@ -72,10 +71,11 @@ async function analyze(): Promise<void> {
     }
 
     setProgress('Suche Gesetzeszitate …')
-    const implicitCode = implicitInput.value.trim() || undefined
+    // No implicit-law option: bare citations stay honestly unresolved ([?])
+    // rather than risking the book-chapter/statute degeneracy. Commentary
+    // brands (Staudinger -> BGB etc.) still infer their law.
     const result = extractFromPages(pages, {
       checkCode: registry.check,
-      implicitCode,
       dropRnContext: dropRnInput.checked,
     })
     warnings.push(...result.warnings)

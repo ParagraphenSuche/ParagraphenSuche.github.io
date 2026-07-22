@@ -1,0 +1,22 @@
+{
+  "_comment": "slugAliases: normalized code key -> gesetze-im-internet slug, for cases the automatic slug matching cannot resolve. reject: tokens that look like law codes but are journals, court reporters, or other non-statute abbreviations — citations whose code candidate is on this list keep the norm but drop the code; standalone matches are discarded.",
+  "slugAliases": {
+    "g10": "g10_2001",
+    "gg": "gg",
+    "bdsg": "bdsg_2018",
+    "stvo": "stvo_2013",
+    "jveg": "jveg",
+    "euv": null,
+    "verordnung": null
+  },
+  "reject": [
+    "NJW", "NJW-RR", "JuS", "JZ", "MDR", "ZZP", "ZIP", "WM", "BB", "DB", "NZG", "NZI", "NZA",
+    "NVwZ", "NStZ", "GRUR", "VersR", "WuM", "ZEV", "ZfPW", "AcP", "JR", "JA", "Jura", "ZGR", "ZHR",
+    "BGHZ", "BGHSt", "BVerfGE", "BVerwGE", "BAGE", "BSGE", "BFHE", "RGZ", "RGSt",
+    "BGH", "BVerfG", "BVerwG", "BAG", "BSG", "BFH", "OLG", "KG", "LG", "AG", "VG", "OVG", "VGH", "EuGH", "EGMR", "RG",
+    "Rn", "Rdnr", "Rz", "Rnr",
+    "BGBl", "BAnz", "ABl",
+    "Aufl", "Bd", "Hrsg", "Fn", "Anm", "Vorb", "Vor", "Einl", "Ed",
+    "BT-Drs", "BT-Drucks", "BR-Drs", "BR-Drucks"
+  ]
+}

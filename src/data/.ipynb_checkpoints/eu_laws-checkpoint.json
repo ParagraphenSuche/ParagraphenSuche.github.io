@@ -1,0 +1,29 @@
+{
+  "_comment": "EU and international instruments not on gesetze-im-internet.de. Key = canonical display code; aliases are matched after normalization (casefold, strip spaces/dots/hyphens).",
+  "laws": [
+    { "code": "DSGVO", "name": "Datenschutz-Grundverordnung", "aliases": ["GDPR", "RGPD", "VO (EU) 2016/679", "Verordnung (EU) 2016/679"] },
+    { "code": "AEUV", "name": "Vertrag über die Arbeitsweise der Europäischen Union", "aliases": ["AEU-Vertrag"] },
+    { "code": "EUV", "name": "Vertrag über die Europäische Union", "aliases": ["EU-Vertrag"] },
+    { "code": "GRCh", "name": "Charta der Grundrechte der Europäischen Union", "aliases": ["GRC", "EU-Grundrechtecharta"] },
+    { "code": "EMRK", "name": "Europäische Menschenrechtskonvention", "aliases": [] },
+    { "code": "CISG", "name": "UN-Kaufrecht", "aliases": [] },
+    { "code": "Brüssel-Ia-VO", "name": "Verordnung (EU) Nr. 1215/2012 (EuGVVO)", "aliases": ["EuGVVO", "Brüssel Ia-Verordnung", "BrüsselIa-Verordnung", "VO (EU) 1215/2012", "VO (EU) Nr. 1215/2012", "Verordnung (EU) Nr. 1215/2012"] },
+    { "code": "Brüssel-IIa-VO", "name": "Verordnung (EG) Nr. 2201/2003", "aliases": ["Brüssel IIa-Verordnung", "BrüsselIIa-Verordnung", "VO (EG) 2201/2003", "VO (EG) Nr. 2201/2003"] },
+    { "code": "Rom-I-VO", "name": "Verordnung (EG) Nr. 593/2008", "aliases": ["Rom I", "RomI", "RomI-VO", "Rom-I-Verordnung", "VO (EG) 593/2008", "VO (EG) Nr. 593/2008"] },
+    { "code": "Rom-II-VO", "name": "Verordnung (EG) Nr. 864/2007", "aliases": ["Rom II", "RomII", "RomII-VO", "Rom-II-Verordnung", "VO (EG) 864/2007", "VO (EG) Nr. 864/2007"] },
+    { "code": "Rom-III-VO", "name": "Verordnung (EU) Nr. 1259/2010", "aliases": ["Rom III", "RomIII", "RomIII-VO", "Rom-III-Verordnung", "VO (EU) 1259/2010", "VO (EU) Nr. 1259/2010"] },
+    { "code": "EuErbVO", "name": "Verordnung (EU) Nr. 650/2012", "aliases": ["EU-ErbVO", "EUErbVO", "EU-ErbrechtsVO", "VO (EU) 650/2012", "VO (EU) Nr. 650/2012"] },
+    { "code": "EuInsVO", "name": "Verordnung (EU) 2015/848", "aliases": ["EU-InsVO", "VO (EU) 2015/848", "VO (EU) Nr. 2015/848"] },
+    { "code": "EuMahnVO", "name": "Verordnung (EG) Nr. 1896/2006", "aliases": ["EU-MahnVO", "EuMahnverfVO", "VO (EG) 1896/2006", "VO (EG) Nr. 1896/2006"] },
+    { "code": "EuUnterhaltsVO", "name": "Verordnung (EG) Nr. 4/2009", "aliases": ["EU-UnterhaltsVO", "VO (EG) 4/2009", "VO (EG) Nr. 4/2009"] },
+    { "code": "EuVTVO", "name": "Verordnung (EG) Nr. 805/2004", "aliases": ["EU-VTVO", "EU-VollstreckungstitelVO", "VO (EG) 805/2004", "VO (EG) Nr. 805/2004"] },
+    { "code": "EuGFVO", "name": "Verordnung (EG) Nr. 861/2007", "aliases": ["EU-BagatellVO", "EuBagatellVO", "VO (EG) 861/2007", "VO (EG) Nr. 861/2007"] },
+    { "code": "MAR", "name": "Marktmissbrauchsverordnung (EU) Nr. 596/2014", "aliases": ["MMVO", "VO (EU) 596/2014", "VO (EU) Nr. 596/2014"] },
+    { "code": "MiFIR", "name": "Verordnung (EU) Nr. 600/2014", "aliases": ["MiFiR", "VO (EU) 600/2014", "VO (EU) Nr. 600/2014"] },
+    { "code": "MiFID II", "name": "Richtlinie 2014/65/EU", "aliases": ["MiFIDII", "MiFiDII", "MiFID", "MiFiD", "Finanzmarktrichtlinie", "RL 2014/65/EU"] },
+    { "code": "ProspektVO", "name": "Verordnung (EU) 2017/1129", "aliases": ["EU-Prospekt-Verordnung", "VO (EU) 2017/1129", "VO (EU) Nr. 2017/1129"] },
+    { "code": "PRIIP-VO", "name": "Verordnung (EU) Nr. 1286/2014", "aliases": ["PRIIPVO", "PRIIP-Verordnung"] },
+    { "code": "Taxonomie-VO", "name": "Verordnung (EU) 2020/852", "aliases": ["TaxonomieVO", "VO (EU) 2020/852", "VO (EU) Nr. 2020/852"] },
+    { "code": "SDÜ", "name": "Schengener Durchführungsübereinkommen", "aliases": ["SchengenerDFÜ", "SchengenerDVÜ"] }
+  ]
+}

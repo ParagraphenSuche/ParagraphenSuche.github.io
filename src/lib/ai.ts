@@ -1,8 +1,10 @@
 /**
  * AI classification of ambiguous citations (norm vs. literature reference)
  * via the Gemini API. Evaluated 2026-07 on 112 hand-labeled cases from four
- * textbooks: gemini-flash-latest, batch 14 — 99.1% type accuracy (100% on
- * unresolved codes), 94.7% law inference. See Test Suite/ai-eval/ (local).
+ * textbooks: gemini-flash-latest at context window ±400/240 — 100% type
+ * accuracy, 94.7% law inference (±200/120: 99.1%; ±1600/960 degrades —
+ * distractor citations). Batch 28 shows no degradation vs 14 on Gemini
+ * (halves request count: quota + wall time). See Test Suite/ai-eval/ (local).
  */
 import type { Citation, TableRow } from './models'
 import { normalizeCodeKey } from './extractor'
@@ -10,7 +12,7 @@ import { normalizeCodeKey } from './extractor'
 /** Primary and fallback model (separate free-tier quotas). Eval 2026-07:
  * flash 99.1% / flash-lite 95.5% type accuracy. */
 export const AI_MODELS = ['gemini-flash-latest', 'gemini-flash-lite-latest']
-export const AI_BATCH = 14
+export const AI_BATCH = 28
 
 export class QuotaError extends Error {
   constructor() {
@@ -56,7 +58,7 @@ export function rowKeyOf(row: TableRow): string {
 
 /**
  * One representative context per ambiguous row: the first citation of the
- * row, ±200/120 chars from the joined text, target marked with »«.
+ * row, ±400/240 chars from the joined text, target marked with »«.
  */
 export function buildCases(
   rows: TableRow[],
@@ -77,8 +79,8 @@ export function buildCases(
     const key = rowKeyOf(row)
     const c = byKey.get(key)
     if (!c || c.charIndex === undefined) continue
-    const start = Math.max(0, c.charIndex - 200)
-    const end = Math.min(joinedText.length, c.charIndex + c.raw.length + 120)
+    const start = Math.max(0, c.charIndex - 400)
+    const end = Math.min(joinedText.length, c.charIndex + c.raw.length + 240)
     const context =
       joinedText.slice(start, c.charIndex) +
       '»' +

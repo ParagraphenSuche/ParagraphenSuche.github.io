@@ -390,25 +390,21 @@ describe('edition-marker literature context', () => {
   })
 })
 
-describe('commentary-brand law inference', () => {
-  it('Staudinger implies BGB', () => {
+describe('commentary citations stay ambiguous (AI decides the law)', () => {
+  it('Staudinger gets no deterministic law', () => {
     const { citations } = extractFromPages(['Staudinger/Gursky (2006), § 985 Rn. 15.'], { checkCode })
-    expect(citations[0]!.lawCode).toBe('BGB')
-    expect(citations[0]!.verweis).toBeUndefined()
+    expect(citations[0]!.lawCode).toBeUndefined()
+    expect(citations[0]!.verweis).toBe(true)
   })
-  it('Zöller implies ZPO', () => {
+  it('Zöller gets no deterministic law', () => {
     const { citations } = extractFromPages(['Zöller/Greger § 253 Rn. 5'], { checkCode })
-    expect(citations[0]!.lawCode).toBe('ZPO')
+    expect(citations[0]!.lawCode).toBeUndefined()
+    expect(citations[0]!.verweis).toBe(true)
   })
-  it('Kopp/Ramsauer vs Kopp/Schenke disambiguate', () => {
-    const a = extractFromPages(['Kopp/Ramsauer, § 48 Rn. 12'], { checkCode }).citations
-    const b = extractFromPages(['Kopp/Schenke, § 42 Rn. 5'], { checkCode }).citations
-    expect(a[0]!.lawCode).toBe('VwVfG')
-    expect(b[0]!.lawCode).toBe('VwGO')
-  })
-  it('MüKoBGB series suffix resolves', () => {
+  it('MüKoBGB series gets no deterministic law', () => {
     const { citations } = extractFromPages(['MüKoBGB/Wagner, § 823 Rn. 5'], { checkCode })
-    expect(citations[0]!.lawCode).toBe('BGB')
+    expect(citations[0]!.lawCode).toBeUndefined()
+    expect(citations[0]!.verweis).toBe(true)
   })
   it('textbook authors stay Verweis', () => {
     const { citations } = extractFromPages(['Medicus/Lorenz SchuldR AT, § 41 Rn. 2'], {

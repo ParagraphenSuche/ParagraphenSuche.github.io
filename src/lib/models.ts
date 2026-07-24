@@ -88,6 +88,8 @@ export interface TableRow {
   aiClass?: 'norm' | 'verweis' | 'unsicher'
   /** Pages contributed by AI-classified citations (rendered with **). */
   aiPages?: number[]
+  /** For aiClass 'verweis': the cited work named by the AI ("Brox/Walker SchuldR AT"). */
+  werk?: string
   /**
    * Per page: the raw citation snippets that put this page in the row
    * (for implied pages, the covering range/ff. citation). Drives the

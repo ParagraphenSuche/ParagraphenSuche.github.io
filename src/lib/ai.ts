@@ -33,6 +33,8 @@ export interface AiCase {
 export interface AiResult {
   typ: AiVerdict
   gesetz?: string
+  /** For "verweis": the cited work (author/title) the § belongs to. */
+  werk?: string
 }
 
 const SYSTEM = `Du bist ein Klassifikator für deutsche juristische Texte. Du bekommst Textausschnitte aus juristischen Büchern, jeweils mit einem markierten (»…«) §-Zitat. Entscheide für jedes:
@@ -44,7 +46,9 @@ const SYSTEM = `Du bist ein Klassifikator für deutsche juristische Texte. Du be
 
 "gesetz": bei "norm" das Gesetz aus den Kandidaten oder "unbekannt"; sonst null. Der Nutzer gibt das HAUPTGESETZ des Buches an: Normen OHNE Kürzel im Fließtext, in Prüfungsschemata oder in Kommentarzitaten dieses Rechtsgebiets gehören im Zweifel zu diesem Hauptgesetz — antworte dann mit dem Hauptgesetz, NICHT mit "unbekannt". "unbekannt" nur, wenn der Kontext gegen das Hauptgesetz spricht und kein anderes Gesetz erkennbar ist.
 
-Antworte NUR mit JSON: {"ergebnisse": [{"nr": <Nummer>, "typ": "...", "gesetz": ...}, ...]}`
+"werk": bei "verweis" das zitierte Werk, kurz als Autor(en) plus ggf. Titel ("Brox/Walker SchuldR AT", "Baur-Stürner Sachenrecht", "dieses Werk" bei Selbstverweisen/Registereinträgen, "unbekannt" wenn nicht erkennbar); sonst null.
+
+Antworte NUR mit JSON: {"ergebnisse": [{"nr": <Nummer>, "typ": "...", "gesetz": ..., "werk": ...}, ...]}`
 
 /** Row key used to match AI results back to rows. */
 export function rowKeyOf(row: TableRow): string {
@@ -140,7 +144,11 @@ export async function classifyCases(
         const idx = (e.nr ?? 0) - 1
         const c = batch[idx]
         if (c && (e.typ === 'norm' || e.typ === 'verweis' || e.typ === 'unsicher')) {
-          results.set(c.rowKey, { typ: e.typ, gesetz: e.gesetz ?? undefined })
+          results.set(c.rowKey, {
+            typ: e.typ,
+            gesetz: e.gesetz ?? undefined,
+            werk: e.werk ?? undefined,
+          })
         }
       }
     }
@@ -153,6 +161,7 @@ interface RawEntry {
   nr?: number
   typ?: string
   gesetz?: string | null
+  werk?: string | null
 }
 
 async function callGemini(

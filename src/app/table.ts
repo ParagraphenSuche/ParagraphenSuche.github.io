@@ -88,6 +88,7 @@ export function renderResults(
       onPageClick,
       'Diese §-Angaben beziehen sich laut KI auf Kapitel zitierter Werke (z. B. „Brox/Walker, BGB AT, § 38, Rn. 1“), nicht auf Gesetze.',
       'tbl-literatur',
+      'Werk',
     )
     sections.push({ id: 'tbl-literatur', label: `Literaturverweise (${literatur.length})` })
   }
@@ -140,13 +141,14 @@ function renderTable(
   onPageClick?: PageClickHandler,
   subtitle?: string,
   id?: string,
+  lawHeader = 'Gesetz',
 ): void {
   const heading = el('h2', title)
   if (id) heading.id = id
   const table = el('table')
   const thead = el('thead')
   const headRow = el('tr')
-  for (const h of ['Gesetz', 'Norm', 'Zitat-Varianten', 'Seiten', 'Status', 'Hinweis']) {
+  for (const h of [lawHeader, 'Norm', 'Zitat-Varianten', 'Seiten', 'Status', 'Hinweis']) {
     headRow.append(el('th', h))
   }
   thead.append(headRow)
@@ -154,7 +156,7 @@ function renderTable(
 
   for (const row of rows) {
     const tr = el('tr')
-    const law = el('td', row.law)
+    const law = el('td', row.werk ?? row.law)
     if (row.implicitOnly) {
       law.append(' ')
       law.append(el('span', '(implizit)', 'badge info'))

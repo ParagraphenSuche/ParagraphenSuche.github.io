@@ -213,7 +213,7 @@ export function splitRows(rows: TableRow[]): {
  */
 export function applyAiResults(
   rows: TableRow[],
-  results: Map<string, { typ: 'norm' | 'verweis' | 'unsicher'; gesetz?: string }>,
+  results: Map<string, { typ: 'norm' | 'verweis' | 'unsicher'; gesetz?: string; werk?: string }>,
   rowKeyOf: (row: TableRow) => string,
   normalize: (code: string) => string,
 ): TableRow[] {
@@ -237,6 +237,7 @@ export function applyAiResults(
     }
     if (res.typ === 'verweis') {
       row.aiClass = 'verweis'
+      if (res.werk && normalize(res.werk) !== 'unbekannt') row.werk = res.werk
       out.push(row)
       continue
     }
@@ -311,7 +312,7 @@ export function toCsv(rows: TableRow[]): string {
     lines.push(
       [
         kategorie,
-        r.law + (r.implicitOnly ? ' (implizit)' : ''),
+        (r.werk ?? r.law) + (r.implicitOnly ? ' (implizit)' : ''),
         normLabel(r),
         r.variants.join(' | '),
         pagesText(r),
@@ -336,7 +337,7 @@ export function toMarkdown(rows: TableRow[], title: string): string {
     '|---|---|---|---|---|---|',
     ...list.map(
       (r) =>
-        `| ${esc(r.law)}${r.implicitOnly ? ' *(implizit)*' : ''} | ${normLabel(r)} | ${esc(
+        `| ${esc(r.werk ?? r.law)}${r.implicitOnly ? ' *(implizit)*' : ''} | ${normLabel(r)} | ${esc(
           r.variants.join('; '),
         )} | ${pagesText(r)} | ${statusLabel(r)} | ${esc(r.staleness?.note ?? '')} |`,
     ),
@@ -363,7 +364,7 @@ export function toHtml(rows: TableRow[], title: string): string {
 ${list
   .map(
     (r) => `<tr>
-  <td>${esc(r.law)}${r.implicitOnly ? ' <em>(implizit)</em>' : ''}</td>
+  <td>${esc(r.werk ?? r.law)}${r.implicitOnly ? ' <em>(implizit)</em>' : ''}</td>
   <td>${esc(normLabel(r))}</td>
   <td>${esc(r.variants.join('; '))}</td>
   <td>${pagesText(r)}</td>

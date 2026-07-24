@@ -429,3 +429,72 @@ describe('cross-page body flow', () => {
     expect(c.page).toBe(3)
   })
 })
+
+describe('register page detection', () => {
+  const registerLines = [
+    'BGB',
+    '§ 90 § 2 I 1 a, 2 c, II 1 a, 2 b',
+    '§ 93 § 2 III 3, 4, 5; § 4 I 2 a; § 11',
+    'II 1 a, 2 a, 5 c; § 12 V 8 pr.;',
+    '§ 94 § 2 III 1 b, c, 2 c, 3 e, 4, 5, 6',
+    '§ 95 § 1 II 1 pr.; § 2 III 6, Fn. 46;',
+    '§ 985 § 11 II 1 a; § 24 I 2 b',
+    'ScheckG',
+    '§ 21 § 21 I 2 b bb',
+    'Abhandenkommen: § 10 III 7 Fn. 57, IV;',
+    '– bei Nießbrauch: § 14 I 1 d',
+    'Eigentumsvorbehalt: § 2 III 2 b; § 9 VIII;',
+    '§ 12 § 24 I 2 b, 4 a',
+    '§ 13 § 24 I 4 b',
+  ].join('\n')
+  const prosePage =
+    'Der Anspruch auf Herausgabe folgt aus § 985 BGB, sofern der Besitzer kein Recht zum Besitz hat und die weiteren Voraussetzungen der Vindikation gegeben sind.'
+
+  it('drops register pages in the tail of long documents', () => {
+    const pages = Array.from({ length: 50 }, () => prosePage)
+    pages[47] = registerLines
+    const { citations, warnings } = extractFromPages(pages, { checkCode })
+    expect(citations.some((c) => c.page === 48)).toBe(false)
+    expect(warnings.some((w) => w.message.includes('Verzeichnis'))).toBe(true)
+  })
+  it('keeps register-like content in short documents', () => {
+    const { citations } = extractFromPages([registerLines], { checkCode })
+    expect(citations.length).toBeGreaterThan(0)
+  })
+  it('keeps prose pages in the tail', () => {
+    const pages = Array.from({ length: 50 }, () => prosePage)
+    const { citations, warnings } = extractFromPages(pages, { checkCode })
+    expect(citations.filter((c) => c.page === 48).length).toBeGreaterThan(0)
+    expect(warnings.length).toBe(0)
+  })
+})
+
+describe('gold-reference findings from Test4', () => {
+  it('spaced letter suffix in enumeration keeps the chain and code', () =>
+    expect(run('gemäß §§ 448, 475 g, 650 HGB gilt')).toEqual([
+      '§ 448 HGB',
+      '§ 475g HGB',
+      '§ 650 HGB',
+    ]))
+  it('spaced suffix mid-enumeration without code', () =>
+    expect(run('finden sich etwa in §§ 397, 441, 464, 475 b, 623. Rangprivilegien')).toEqual([
+      '§ 397',
+      '§ 441',
+      '§ 464',
+      '§ 475b',
+      '§ 623',
+    ]))
+  it('no backward propagation across parenthetical glosses', () =>
+    expect(
+      run(
+        'angeordnet in § 718 (Gesellschaft), § 1416 (eheliche Gütergemeinschaft), § 2032 (Erbengemeinschaft), § 105 II HGB',
+      ),
+    ).toEqual(['§ 718', '§ 1416', '§ 2032', '§ 105 Abs. 2 HGB']))
+  it('spaced letter never steals f. or words', () => {
+    expect(run('§ 823 f. BGB')).toEqual(['§ 823 f. BGB'])
+    expect(run('nach § 705 i.V.m. § 812 BGB')).toEqual(['§ 705 BGB', '§ 812 BGB'])
+    // prose after the number breaks code attachment (pre-existing), but the
+    // spaced letter must not be glued on as a suffix ("§ 985e")
+    expect(run('§ 985 e contrario BGB')).toEqual(['§ 985'])
+  })
+})

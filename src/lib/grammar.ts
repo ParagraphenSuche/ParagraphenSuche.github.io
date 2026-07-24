@@ -32,7 +32,12 @@ export interface RawCitation {
 // Section/article number: 823, 306a, 44b. Hard 4-digit cap — a 5-digit run
 // (page/header junk) must not match via its prefix. "ff" is never a letter
 // suffix (no such norms) — it belongs to the ff.-matcher ("§§535ff.").
-const NUM = String.raw`\d{1,4}(?!\d)(?:(?!ff(?![a-z]))[a-z]{1,2})?`
+// Older typography spaces the suffix ("§§ 448, 475 g, 650 HGB"): a spaced
+// single letter counts only when clearly list/code-bound (followed by a
+// separator or an uppercase/§ token) — never 'f' (that's "f." = folgende)
+// and never before a dot ("i.V.m.", "s.", "a.F." stay words).
+const NUM_SUF_SPACED = String.raw`\s[a-eg-z](?=\s*[,;)]|\s+[A-ZÄÖÜ§])`
+const NUM = String.raw`\d{1,4}(?!\d)(?:(?!ff(?![a-z]))[a-z]{1,2}|${NUM_SUF_SPACED})?`
 
 // Roman numeral for Absatz shorthand, longest-first, I..XX is realistic.
 const ROMAN =
@@ -121,7 +126,10 @@ export const CHAIN_RE = new RegExp(CHAIN, 'gu')
 const SIGN_RE = new RegExp(String.raw`(${SIGN})\s?`, 'yu')
 const CONNECT_SPLIT_RE = new RegExp(CONNECT, 'gu')
 const IVM_TEST_RE = new RegExp(IVM, 'u')
-const NUM_RE = new RegExp(String.raw`(\d{1,4})(?!\d)((?:(?!ff(?![a-z]))[a-z]{1,2})?)`, 'yu')
+const NUM_RE = new RegExp(
+  String.raw`(\d{1,4})(?!\d)((?:(?!ff(?![a-z]))[a-z]{1,2})?)(?:\s([a-eg-z])(?=\s*[,;)]|\s+[A-ZÄÖÜ§]))?`,
+  'yu',
+)
 const RANGE_RE = new RegExp(String.raw`\s?([–—-]|bis)\s?(${NUM})`, 'yu')
 const FF_RE = new RegExp(String.raw`\s?(ff\.?|f\.)(?![a-z])`, 'yu')
 const DETAIL_RE = new RegExp(String.raw`\s?${DETAIL}`, 'yu')
@@ -271,17 +279,29 @@ export function parseChainSpan(span: string, offset: number): ChainMatch {
   legs.push({ text: span.slice(last), at: last })
 
   let prevKind: Kind | undefined
+  const legGloss: boolean[] = [] // per citation: leg ends in a parenthetical
   for (const leg of legs) {
     const cits = parseLeg(leg.text, offset + leg.at, prevKind)
     if (cits.length > 0) prevKind = cits[cits.length - 1]!.ref.kind
-    citations.push(...cits)
+    const gloss = /\)\s*$/.test(leg.text)
+    for (const c of cits) {
+      legGloss.push(gloss)
+      citations.push(c)
+    }
   }
 
   // Backward code propagation: "§ 812 iVm § 818 BGB" → both BGB.
-  // The LAST citation's written code applies to earlier code-less ones.
+  // The LAST citation's written code applies to earlier code-less ones —
+  // but never across a leg that ends in a parenthetical gloss: in
+  // "§ 718 (Gesellschaft), § 1416 (Gütergemeinschaft), § 105 II HGB" the
+  // glossed norms belong to another (implied) law; they stay code-less
+  // and go to the ambiguous table instead of inheriting the wrong code.
   const lastCode = citations.length ? citations[citations.length - 1]!.codeCandidate : undefined
   if (lastCode) {
-    for (const c of citations) if (!c.codeCandidate) c.codeCandidate = lastCode
+    for (let i = citations.length - 1; i >= 0; i--) {
+      if (legGloss[i]) break
+      if (!citations[i]!.codeCandidate) citations[i]!.codeCandidate = lastCode
+    }
   }
   if (chainId) for (const c of citations) c.chainId = chainId
 
@@ -316,11 +336,11 @@ function parseLeg(leg: string, offset: number, inheritKind?: Kind): RawCitation[
     const nm = eat(NUM_RE, leg, pos)
     if (!nm) break
     pos = nm.index + nm[0].length
-    const ref: NormRef = { kind, number: nm[1]! + (nm[2] ?? ''), details: [] }
+    const ref: NormRef = { kind, number: nm[1]! + (nm[2] ?? '') + (nm[3] ?? ''), details: [] }
 
     const rm = eat(RANGE_RE, leg, pos)
     if (rm) {
-      ref.numberEnd = rm[2]!
+      ref.numberEnd = rm[2]!.replace(/\s/g, '')
       pos = rm.index + rm[0].length
     }
     const fm = eat(FF_RE, leg, pos)

@@ -149,6 +149,21 @@ describe('applyAiResults', () => {
     const out = applyAiResults(rows, new Map([[keyOf(rows[0]!), { typ: 'verweis' as const }]]), keyOf, normalize)
     expect(splitRows(out).literatur).toHaveLength(1)
   })
+  it('verweis verdict stores the named work; "unbekannt" stays [?]', () => {
+    const rows = [mkRow('[Verweis]', '22', [5]), mkRow('[?]', '38', [9])]
+    const out = applyAiResults(
+      rows,
+      new Map([
+        [keyOf(rows[0]!), { typ: 'verweis' as const, werk: 'Brox/Walker SchuldR AT' }],
+        [keyOf(rows[1]!), { typ: 'verweis' as const, werk: 'unbekannt' }],
+      ]),
+      keyOf,
+      normalize,
+    )
+    expect(out[0]!.werk).toBe('Brox/Walker SchuldR AT')
+    expect(out[1]!.werk).toBeUndefined()
+    expect(splitRows(out).literatur).toHaveLength(2)
+  })
   it('norm verdict merges into existing law row with aiPages', () => {
     const rows = [mkRow('BGB', '433', [3]), mkRow('[?]', '433', [7])]
     const out = applyAiResults(rows, new Map([[keyOf(rows[1]!), { typ: 'norm' as const, gesetz: 'BGB' }]]), keyOf, normalize)

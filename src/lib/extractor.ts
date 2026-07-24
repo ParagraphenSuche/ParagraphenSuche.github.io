@@ -60,6 +60,44 @@ const PAGEREF_AFTER_RE = /^\s?,\s?S\.\s?\d/
 // 5. Aufl. 1999, § 26 II 1") are literature context.
 const AUFL_BEFORE_RE = /\d{1,2}\.\s?Aufl\.?\s?\d{0,4},?\s*$/
 
+/**
+ * Back-matter register pages (Gesetzesverzeichnis, Sachregister, Paragraphen-
+ * register): dense §-reference lists with almost no prose. Their §§ are index
+ * entries — extracting them floods the ambiguous table with book-chapter
+ * references and duplicates every law under [?]. Detection is structural
+ * (register headings often don't survive the text layer): a page counts as a
+ * register page when most lines consist of citation-ish tokens and running
+ * prose is nearly absent. Only applied to the trailing quarter of documents
+ * of realistic book length (registers are back matter).
+ */
+const REGISTER_MIN_PAGES = 40
+const REGISTER_TAIL_FRACTION = 0.75
+const REGISTER_TOKEN_RE =
+  /^(?:§§?|Artt?\.?|\d{1,4}[a-z]{0,2}[.,;:]?|[IVXLivxl]{1,6}[.,;:]?|[a-zß]{1,2}[.,;:]?|ff?\s?\.[,;]?|Fn\.?|pr\.?[,;]?|Rn\.?|Nrn?\.?|Abs\.?|S\.?|Hs\.?|a\.E\.[,;]?|[,;.:()–—-]+|\.{2,}|[A-ZÄÖÜ][A-Za-z0-9ÄÖÜäöüß./§-]{0,29}:?)$/
+
+export function isRegisterPage(text: string): boolean {
+  const lines = text
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  if (lines.length < 12) return false
+  const refs = (text.match(/§/g) ?? []).length
+  if (refs < 8) return false
+  let refish = 0
+  let prose = 0
+  for (const line of lines) {
+    // Six consecutive multi-letter lowercase words = a running sentence.
+    if (/(?:\p{Ll}{3,}\s+){5}\p{Ll}{3,}/u.test(line)) {
+      prose++
+      continue
+    }
+    const tokens = line.split(/\s+/)
+    const good = tokens.filter((t) => REGISTER_TOKEN_RE.test(t)).length
+    if (good / tokens.length >= 0.7) refish++
+  }
+  return refish / lines.length >= 0.6 && prose / lines.length <= 0.15
+}
+
 export function extractFromPages(pages: string[], opts: ExtractOptions): ExtractResult {
   const citations: Citation[] = []
   const warnings: AnalysisWarning[] = []
@@ -71,10 +109,33 @@ export function extractFromPages(pages: string[], opts: ExtractOptions): Extract
   // ("… aus § 823 <Fußnoten|Seitenwechsel> BGB, sofern …"); page
   // attribution works via segment start offsets for both streams.
   const split = pages.map(fixShiftedEncoding).map(dropDuplicatedLayer).map(splitBodyAndFootnotes)
-  const bodies = stripRepeatedEdges(
+  // Register detection needs line structure, so it runs pre-cleanText.
+  const rawBodies = stripRepeatedEdges(
     split.map((x) => dropBareNumberLines(dropRunningHeader(x.body))),
-  ).map(cleanText)
+  )
+  const bodies = rawBodies.map(cleanText)
   const smalls = split.map((x) => cleanText(x.small))
+
+  // Drop back-matter register pages (Gesetzesverzeichnis/Sachregister).
+  const registerPages: number[] = []
+  if (pages.length >= REGISTER_MIN_PAGES) {
+    for (let i = Math.floor(pages.length * REGISTER_TAIL_FRACTION); i < bodies.length; i++) {
+      if (isRegisterPage(rawBodies[i]!)) {
+        registerPages.push(i + 1)
+        bodies[i] = ''
+        smalls[i] = ''
+      }
+    }
+  }
+  if (registerPages.length > 0) {
+    const first = registerPages[0]!
+    const last = registerPages[registerPages.length - 1]!
+    warnings.push({
+      message:
+        `Verzeichnis-Seiten erkannt und ignoriert (Gesetzes-/Sachregister): ` +
+        (registerPages.length > 2 ? `${registerPages.length} Seiten im Bereich ${first}–${last}.` : `Seite ${registerPages.join(', ')}.`),
+    })
+  }
 
   const segStarts: Array<{ start: number; page: number }> = []
   let text = ''
